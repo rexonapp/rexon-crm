@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
@@ -12,6 +13,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+interface AgentData {
+  id: string;
+  full_name: string;
+  email: string;
+  agency_name?: string;
+  profile_photo_s3_url?: string;
+}
+
 /* ─────────────────────────────────────────────
    NAV CONFIG
    ───────────────────────────────────────────── */
@@ -20,13 +29,13 @@ const NAV_SECTIONS = [
     label: "Overview",
     items: [{ icon: LayoutIcon, label: "Dashboard", href: "/", badge: null }],
   },
-  {
-    label: "Management",
-    items: [
-      { icon: UsersIcon,  label: "Agents",  href: "/agents",  badge: "" },
-      { icon: GlobeIcon,  label: "Domains", href: "/domains", badge: null },
-    ],
-  },
+  // {
+  //   label: "Management",
+  //   items: [
+  //     { icon: UsersIcon,  label: "Agents",  href: "/agents",  badge: "" },
+  //     { icon: GlobeIcon,  label: "Domains", href: "/domains", badge: null },
+  //   ],
+  // },
   {
     label: "System",
     items: [
@@ -148,12 +157,52 @@ function NavItem({
 }
 
 /* ─────────────────────────────────────────────
+   HELPERS
+   ───────────────────────────────────────────── */
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/* ─────────────────────────────────────────────
    SIDEBAR  — w-64 gives ample breathing room
    ───────────────────────────────────────────── */
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [agent, setAgent] = useState<AgentData | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("agentData");
+      if (raw) setAgent(JSON.parse(raw));
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const handleSignOut = () => {
+    const token = localStorage.getItem("agentToken");
+    localStorage.removeItem("agentToken");
+    localStorage.removeItem("agentId");
+    localStorage.removeItem("agentData");
+    if (token) {
+      fetch("/api/agents/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+    router.replace("/login");
+  };
+
+  const initials = agent ? getInitials(agent.full_name) : "–";
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col fixed inset-y-0 left-0 z-40">
@@ -168,7 +217,7 @@ export default function Sidebar() {
             Rexon
           </div>
           <div className="text-[11px] text-muted-foreground font-medium tracking-wide leading-tight mt-0.5">
-            CRM Platform
+            Agent Portal
           </div>
         </div>
       </div>
@@ -203,15 +252,25 @@ export default function Sidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-accent transition-colors text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-bold text-background">JR</span>
-              </div>
+              {/* Avatar */}
+              {agent?.profile_photo_s3_url ? (
+                <img
+                  src={agent.profile_photo_s3_url}
+                  alt={agent.full_name}
+                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-border"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
+                  <span className="text-[11px] font-bold text-background">{initials}</span>
+                </div>
+              )}
+
               <div className="flex-1 min-w-0">
                 <div className="text-[13.5px] font-semibold text-foreground leading-tight truncate">
-                  Jordan Reed
+                  {agent?.full_name ?? "Loading…"}
                 </div>
                 <div className="text-[11.5px] text-muted-foreground leading-tight mt-0.5 truncate">
-                  jordan@rexon.io
+                  {agent?.email ?? ""}
                 </div>
               </div>
               <ChevronUpIcon className="w-4 h-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -220,20 +279,32 @@ export default function Sidebar() {
 
           <DropdownMenuContent side="top" align="start" className="w-60 mb-1">
             <div className="px-3 py-2.5">
-              <p className="text-[13.5px] font-semibold text-foreground">Jordan Reed</p>
-              <p className="text-[12px] text-muted-foreground mt-0.5">jordan@rexon.io · Admin</p>
+              <p className="text-[13.5px] font-semibold text-foreground">
+                {agent?.full_name ?? "Agent"}
+              </p>
+              <p className="text-[12px] text-muted-foreground mt-0.5 truncate">
+                {agent?.email ?? ""}
+                {agent?.agency_name ? ` · ${agent.agency_name}` : ""}
+              </p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-[13.5px] gap-2.5 py-2 px-3">
-              <UserIcon className="w-[16px] h-[16px] shrink-0" />
-              Profile
+            <DropdownMenuItem asChild className="text-[13.5px] gap-2.5 py-2 px-3 cursor-pointer">
+              <Link href="/">
+                <UserIcon className="w-[16px] h-[16px] shrink-0" />
+                Profile
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-[13.5px] gap-2.5 py-2 px-3">
-              <SettingsIcon className="w-[16px] h-[16px] shrink-0" />
-              Settings
+            <DropdownMenuItem asChild className="text-[13.5px] gap-2.5 py-2 px-3 cursor-pointer">
+              <Link href="/settings">
+                <SettingsIcon className="w-[16px] h-[16px] shrink-0" />
+                Settings
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-[13.5px] text-destructive focus:text-destructive gap-2.5 py-2 px-3">
+            <DropdownMenuItem
+              className="text-[13.5px] text-destructive focus:text-destructive gap-2.5 py-2 px-3 cursor-pointer"
+              onClick={handleSignOut}
+            >
               <LogOutIcon className="w-[16px] h-[16px] shrink-0" />
               Sign out
             </DropdownMenuItem>

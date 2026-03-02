@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Tooltip,
@@ -16,6 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+
+interface AgentData {
+  id: string;
+  full_name: string;
+  email: string;
+  agency_name?: string;
+  profile_photo_s3_url?: string;
+}
 
 /* ─────────────────────────────────────────────
    NOTIFICATIONS
@@ -80,6 +89,13 @@ function SearchIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="9" cy="9" r="5.5" />
       <path d="M13.5 13.5l3.5 3.5" />
+    </svg>
+  );
+}
+function LogOutIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3H5a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 5 17h3M13.5 14.5l4-4.5-4-4.5M17.5 10H8" />
     </svg>
   );
 }
@@ -192,7 +208,6 @@ function NotificationButton() {
                 n.unread && "bg-muted/30"
               )}
             >
-              {/* Avatar */}
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0"
                 style={{ background: `${n.color}22`, color: n.color }}
@@ -228,6 +243,18 @@ function NotificationButton() {
 }
 
 /* ─────────────────────────────────────────────
+   HELPERS
+   ───────────────────────────────────────────── */
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/* ─────────────────────────────────────────────
    TOP NAV
    ───────────────────────────────────────────── */
 export default function TopNav({
@@ -237,10 +264,21 @@ export default function TopNav({
 }) {
   const pathname = usePathname();
   const { title, crumb } = getPageMeta(pathname);
+  const [agent, setAgent] = useState<AgentData | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("agentData");
+      if (raw) setAgent(JSON.parse(raw));
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  const initials = agent ? getInitials(agent.full_name) : "–";
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* left-64 matches the new sidebar w-64 (256px) */}
       <header className="fixed top-0 left-64 right-0 h-[60px] bg-background/95 backdrop-blur-sm border-b border-border flex items-center px-6 z-30 gap-5">
 
         {/* Page Title + Breadcrumb */}
@@ -269,11 +307,39 @@ export default function TopNav({
 
           <Separator orientation="vertical" className="h-5 mx-2" />
 
+          {/* Agent identity */}
+          <div className="flex items-center gap-2.5 mr-1">
+            {agent?.profile_photo_s3_url ? (
+              <img
+                src={agent.profile_photo_s3_url}
+                alt={agent.full_name}
+                className="w-8 h-8 rounded-full object-cover border border-border shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-bold text-background">{initials}</span>
+              </div>
+            )}
+            {agent && (
+              <div className="hidden md:block leading-tight">
+                <p className="text-[13px] font-semibold text-foreground truncate max-w-32.5">
+                  {agent.full_name}
+                </p>
+                {agent.agency_name && (
+                  <p className="text-[11px] text-muted-foreground truncate max-w-32.5">
+                    {agent.agency_name}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={onSignInClick}
-            className="inline-flex items-center gap-1.5 bg-foreground hover:bg-foreground/90 active:bg-foreground/80 text-background text-[13px] font-semibold rounded-lg px-4 h-9 transition-colors leading-none cursor-pointer"
+            className="inline-flex items-center gap-1.5 border border-border hover:bg-accent text-foreground text-[13px] font-medium rounded-lg px-3 h-9 transition-colors leading-none cursor-pointer"
           >
-            Sign In
+            <LogOutIcon className="w-3.75 h-3.75" />
+            Sign Out
           </button>
         </div>
       </header>
