@@ -1,33 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import jwt from 'jsonwebtoken';
+import { getSessionFromRequest } from '@/lib/auth';
 
 /**
  * GET /api/agents/[id]
- * Returns agent profile + assigned domains from agents_domain table.
- * Requires a valid JWT where agentId matches the requested id.
+ * Returns agent profile + assigned domains.
+ * Accepts a JWT via httpOnly cookie or Authorization Bearer header.
+ * Agent can only access their own profile.
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const session = getSessionFromRequest(request);
+    if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Missing token' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.slice(7);
-    let decoded: any;
-
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    } catch {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or expired token' },
+        { success: false, error: 'Unauthorized - Missing or invalid token' },
         { status: 401 }
       );
     }
@@ -35,7 +24,7 @@ export async function GET(
     const { id: agentId } = await params;
 
     // Agent can only access their own profile
-    if (decoded.agentId !== agentId) {
+    if (session.agentId !== agentId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

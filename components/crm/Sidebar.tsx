@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { Building } from "lucide-react";
 
 interface AgentData {
   id: string;
@@ -37,6 +38,10 @@ const NAV_SECTIONS = [
   //   ],
   // },
   {
+    label:"properties",
+    items:[{icon:Building,label:"properties",href:"/property",badge:null}]
+  },
+  {
     label: "System",
     items: [
       { icon: SettingsIcon, label: "Settings", href: "/settings", badge: null },
@@ -44,9 +49,6 @@ const NAV_SECTIONS = [
   },
 ];
 
-/* ─────────────────────────────────────────────
-   ICONS  (20 × 20 viewport for visual weight)
-   ───────────────────────────────────────────── */
 function LayoutIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -57,23 +59,7 @@ function LayoutIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-function UsersIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="7" r="3.5" />
-      <path d="M1.5 17.5c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6" />
-      <path d="M14.5 4a3.5 3.5 0 0 1 0 7M18.5 17.5c0-3-2-5.2-4.5-5.8" />
-    </svg>
-  );
-}
-function GlobeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="10" cy="10" r="7.5" />
-      <path d="M10 2.5c-3 3-4 5-4 7.5s1 4.5 4 7.5M10 2.5c3 3 4 5 4 7.5s-1 4.5-4 7.5M2.5 10h15" />
-    </svg>
-  );
-}
+
 function SettingsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

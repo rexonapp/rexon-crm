@@ -1,43 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { getSessionFromRequest } from '@/lib/auth';
 
 /**
  * Change Password API Route
  * POST /api/agents/change-password
- * 
- * Allows agent to change from temporary password to permanent password
- * Requires JWT token verification
+ *
+ * Allows agent to change from temporary password to permanent password.
+ * Accepts a JWT via httpOnly cookie or Authorization Bearer header.
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    // Verify session (cookie or Bearer token)
+    const session = getSessionFromRequest(request);
+    if (!session) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized - Missing or invalid token',
-        },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.slice(7);
-    let decoded: any;
-
-    try {
-      decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'your-secret-key'
-      );
-    } catch (err) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid or expired token',
-        },
+        { success: false, error: 'Unauthorized - Missing or invalid token' },
         { status: 401 }
       );
     }
@@ -55,13 +34,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify agentId matches token (JWT stores agentId)
-    if (decoded.agentId !== agentId) {
+    // Verify agentId matches token
+    if (session.agentId !== agentId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized - Agent ID mismatch',
-        },
+        { success: false, error: 'Unauthorized - Agent ID mismatch' },
         { status: 401 }
       );
     }

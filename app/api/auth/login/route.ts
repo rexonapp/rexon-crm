@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Set secure HTTP-only cookie
-    response.cookies.set('agentsToken', token, {
+    response.cookies.set('agentToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
