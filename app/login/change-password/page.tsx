@@ -1,16 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Lock, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Lock, Check, Loader2, ShieldCheck } from "lucide-react";
 
-/* ─────────────────────────────────────────────
-   PASSWORD REQUIREMENTS
-   ───────────────────────────────────────────── */
 interface PasswordRequirements {
   minLength: boolean;
   hasUppercase: boolean;
@@ -30,25 +27,10 @@ function validatePassword(password: string): PasswordRequirements {
 }
 
 function isPasswordValid(requirements: PasswordRequirements): boolean {
-  return (
-    requirements.minLength &&
-    requirements.hasUppercase &&
-    requirements.hasLowercase &&
-    requirements.hasNumber &&
-    requirements.hasSpecial
-  );
+  return Object.values(requirements).every(Boolean);
 }
 
-/* ─────────────────────────────────────────────
-   REQUIREMENT ITEM
-   ───────────────────────────────────────────── */
-function RequirementItem({
-  met,
-  label,
-}: {
-  met: boolean;
-  label: string;
-}) {
+function RequirementItem({ met, label }: { met: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2 text-[12px]">
       {met ? (
@@ -63,9 +45,6 @@ function RequirementItem({
   );
 }
 
-/* ─────────────────────────────────────────────
-   CHANGE PASSWORD PAGE
-   ───────────────────────────────────────────── */
 export default function ChangePasswordPage() {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -74,7 +53,6 @@ export default function ChangePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -83,6 +61,17 @@ export default function ChangePasswordPage() {
     isPasswordValid(requirements) &&
     newPassword === confirmPassword &&
     currentPassword.length > 0;
+
+  // ✅ Prefill temp password from localStorage on mount
+  useEffect(() => {
+    const tempPassword = localStorage.getItem("tempPassword");
+    if (tempPassword) {
+      setCurrentPassword(tempPassword);
+    } else {
+      // No temp password found — shouldn't be on this page
+      router.push("/login");
+    }
+  }, [router]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,12 +119,11 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      setSuccess(true);
+      // ✅ Clean up temp password from localStorage after success
+      localStorage.removeItem("tempPassword");
 
-      // Redirect after success
-      setTimeout(() => {
-        router.push("/");
-      }, 2000);
+      setSuccess(true);
+      setTimeout(() => router.push("/"), 2000);
     } catch (err) {
       setError("An error occurred. Please try again.");
       console.error("Change password error:", err);
@@ -167,7 +155,6 @@ export default function ChangePasswordPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-[420px]">
-        {/* Heading */}
         <div className="mb-8">
           <h1 className="text-[28px] font-semibold text-foreground tracking-tight mb-2">
             Create New Password
@@ -178,19 +165,15 @@ export default function ChangePasswordPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleChangePassword} className="space-y-6">
-          {/* Error Alert */}
           {error && (
             <div className="flex gap-3 p-3.5 rounded-lg border border-destructive/20 bg-destructive/5">
               <AlertCircle className="w-[18px] h-[18px] text-destructive shrink-0 mt-0.5" />
-              <p className="text-[13px] text-destructive leading-relaxed">
-                {error}
-              </p>
+              <p className="text-[13px] text-destructive leading-relaxed">{error}</p>
             </div>
           )}
 
-          {/* Current Password */}
+          {/* ✅ Prefilled + disabled temp password field */}
           <div className="space-y-2">
             <Label htmlFor="current" className="text-[13px] font-semibold text-foreground">
               Temporary Password
@@ -199,23 +182,20 @@ export default function ChangePasswordPage() {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="current"
-                type={showCurrentPassword ? "text" : "password"}
-                placeholder="Enter your temporary password"
+                type="password"
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                disabled={loading}
-                className="pl-10 pr-10 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
+                disabled={true}
+                className="pl-10 pr-10 h-10 text-[14px] bg-muted/50 border-transparent cursor-not-allowed opacity-60"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-                disabled={loading}
-              >
-                {showCurrentPassword ? "Hide" : "Show"}
-              </button>
+              {/* Lock badge to signal it's auto-filled */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4 text-green-600" />
+              </div>
             </div>
+            <p className="text-[11.5px] text-muted-foreground">
+              Auto-filled from your login session
+            </p>
           </div>
 
           <Separator />
@@ -234,7 +214,7 @@ export default function ChangePasswordPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={loading}
-                className="pl-10 pr-10 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
+                className="pl-10 pr-16 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
                 required
               />
               <button
@@ -262,7 +242,7 @@ export default function ChangePasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
-                className="pl-10 pr-10 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
+                className="pl-10 pr-16 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
                 required
               />
               <button
@@ -286,23 +266,13 @@ export default function ChangePasswordPage() {
                 Password Requirements:
               </p>
               <RequirementItem met={requirements.minLength} label="At least 8 characters" />
-              <RequirementItem
-                met={requirements.hasUppercase}
-                label="One uppercase letter (A-Z)"
-              />
-              <RequirementItem
-                met={requirements.hasLowercase}
-                label="One lowercase letter (a-z)"
-              />
+              <RequirementItem met={requirements.hasUppercase} label="One uppercase letter (A-Z)" />
+              <RequirementItem met={requirements.hasLowercase} label="One lowercase letter (a-z)" />
               <RequirementItem met={requirements.hasNumber} label="One number (0-9)" />
-              <RequirementItem
-                met={requirements.hasSpecial}
-                label="One special character (!@#$%^&*)"
-              />
+              <RequirementItem met={requirements.hasSpecial} label="One special character (!@#$%^&*)" />
             </div>
           )}
 
-          {/* Submit Button */}
           <Button
             type="submit"
             disabled={loading || !isValid}
@@ -321,7 +291,6 @@ export default function ChangePasswordPage() {
 
         <Separator className="my-6" />
 
-        {/* Footer */}
         <p className="text-center text-[12px] text-muted-foreground/70">
           Your password must be strong and secure to protect your account.
         </p>

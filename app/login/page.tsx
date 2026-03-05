@@ -65,6 +65,7 @@ export default function AgentLoginPage() {
       });
 
       const data = await response.json();
+      console.log("Login response:", data);
 
       if (!response.ok) {
         setError(data.error || data.message || "Authentication failed");
@@ -89,11 +90,22 @@ export default function AgentLoginPage() {
         );
 
         // Check if using temporary password
-        if (data.agent.is_temporary_password) {
-          router.push("/login/change-password");
-        } else {
-          router.push("/");
-        }
+        const isTempPassword = data.agent.is_temporary_password === true 
+        || data.agent.is_temporary_password === "true"
+        || data.agent.is_temporary_password === 1;
+
+      console.log("is_temporary_password:", data.agent.is_temporary_password); 
+
+      if (isTempPassword) {
+        localStorage.setItem("tempPassword", password); 
+        router.push("/login/change-password");
+      } else {
+        router.push("/");
+      }
+      
+      }
+      else {
+        setError("No token received. Please contact administrator.");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");

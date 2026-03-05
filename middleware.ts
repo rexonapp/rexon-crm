@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-/**
- * Next.js middleware — runs on the Edge before every matched request.
- *
- * Rules:
- * - API routes handle their own JWT verification, skip here.
- * - /login pages: if the agent already has a valid cookie → redirect to /.
- * - All other pages: require the agentToken cookie, else redirect to /login.
- */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -23,8 +15,9 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('agentToken')?.value;
 
   // Already authenticated → bounce away from login pages
+  // BUT allow /login/change-password through (temporary password flow)
   if (pathname.startsWith('/login')) {
-    if (token) {
+    if (token && pathname !== '/login/change-password') {
       return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
