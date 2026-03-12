@@ -25,7 +25,18 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSubContent,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger
+} from "@/components/ui/dropdown-menu"
 
+import { MoreVertical } from "lucide-react"
+import { toast } from "sonner"
 interface Property {
   id: number;
   property_name: string;
@@ -107,9 +118,9 @@ function StatCard({
 /* ── Status Badge ── */
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
-    Active:   { label: 'Active',   className: 'bg-foreground text-background' },
+    Active: { label: 'Active', className: 'bg-foreground text-background' },
     Approved: { label: 'Approved', className: 'bg-foreground text-background' },
-    Pending:  { label: 'Pending',  className: 'bg-muted text-muted-foreground border border-border' },
+    Pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border border-border' },
     Rejected: { label: 'Rejected', className: 'bg-destructive/10 text-destructive border border-destructive/20' },
   };
   const info = map[status] ?? { label: status, className: 'bg-muted text-muted-foreground border border-border' };
@@ -145,7 +156,6 @@ export default function MyListingsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const router = useRouter();
-
   const [filters, setFilters] = useState<FilterState>({
     search: '', propertyType: 'all', priceType: 'all', status: 'all',
     city: 'all', state: 'all', minPrice: '', maxPrice: '',
@@ -178,10 +188,10 @@ export default function MyListingsPage() {
   const handleRefresh = () => { setIsRefreshing(true); fetchListings(); };
 
   const uniquePropertyTypes = Array.from(new Set(properties.map(p => p.property_type).filter(Boolean)));
-  const uniquePriceTypes    = Array.from(new Set(properties.map(p => p.price_type).filter(Boolean)));
-  const uniqueStatuses      = Array.from(new Set(properties.map(p => p.status).filter(Boolean)));
-  const uniqueCities        = Array.from(new Set(properties.map(p => p.city).filter(Boolean)));
-  const uniqueStates        = Array.from(new Set(properties.map(p => p.state).filter(Boolean)));
+  const uniquePriceTypes = Array.from(new Set(properties.map(p => p.price_type).filter(Boolean)));
+  const uniqueStatuses = Array.from(new Set(properties.map(p => p.status).filter(Boolean)));
+  const uniqueCities = Array.from(new Set(properties.map(p => p.city).filter(Boolean)));
+  const uniqueStates = Array.from(new Set(properties.map(p => p.state).filter(Boolean)));
 
   useEffect(() => {
     let f = [...properties];
@@ -193,14 +203,14 @@ export default function MyListingsPage() {
       );
     }
     if (filters.propertyType !== 'all') f = f.filter(p => p.property_type === filters.propertyType);
-    if (filters.priceType    !== 'all') f = f.filter(p => p.price_type    === filters.priceType);
-    if (filters.status       !== 'all') f = f.filter(p => p.status        === filters.status);
-    if (filters.city         !== 'all') f = f.filter(p => p.city          === filters.city);
-    if (filters.state        !== 'all') f = f.filter(p => p.state         === filters.state);
+    if (filters.priceType !== 'all') f = f.filter(p => p.price_type === filters.priceType);
+    if (filters.status !== 'all') f = f.filter(p => p.status === filters.status);
+    if (filters.city !== 'all') f = f.filter(p => p.city === filters.city);
+    if (filters.state !== 'all') f = f.filter(p => p.state === filters.state);
     if (filters.minPrice) f = f.filter(p => p.price_per_sqft >= parseFloat(filters.minPrice));
     if (filters.maxPrice) f = f.filter(p => p.price_per_sqft <= parseFloat(filters.maxPrice));
-    if (filters.minArea)  f = f.filter(p => p.space_available >= parseFloat(filters.minArea));
-    if (filters.maxArea)  f = f.filter(p => p.space_available <= parseFloat(filters.maxArea));
+    if (filters.minArea) f = f.filter(p => p.space_available >= parseFloat(filters.minArea));
+    if (filters.maxArea) f = f.filter(p => p.space_available <= parseFloat(filters.maxArea));
     if (filters.isVerified !== 'all') f = f.filter(p => p.is_verified === (filters.isVerified === 'true'));
     if (filters.isFeatured !== 'all') f = f.filter(p => p.is_featured === (filters.isFeatured === 'true'));
     setFilteredProperties(f);
@@ -219,14 +229,39 @@ export default function MyListingsPage() {
   const hasActiveFilters = () =>
     filters.search !== '' || Object.entries(filters).some(([k, v]) => k !== 'search' && v !== '' && v !== 'all');
 
-  const totalPages         = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE);
-  const startIndex         = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentProperties  = filteredProperties.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentProperties = filteredProperties.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+
+  const handleExpiry = async (id: number, type: string) => {
+    try {
+      const res = await fetch("/api/properties/update-expiry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, type }),
+      })
+  
+      const data = await res.json()
+  console.log(data, "dataa")
+      if (data.success) {
+        toast.success("Expiry updated successfully")
+        fetchListings()
+      } else {
+        toast.error(data.message || "Failed to update expiry")
+      }
+  
+    } catch (error) {
+      toast.error("Something went wrong")
+      console.error(error)
+    }
+  }
 
   /* ── Loading ── */
   if (isLoading) return (
@@ -327,9 +362,9 @@ export default function MyListingsPage() {
               {/* Inline quick filters */}
               <div className="hidden lg:flex gap-2">
                 {[
-                  { key: 'status'       as keyof FilterState, placeholder: 'Status',        options: uniqueStatuses,       allLabel: 'All Status'     },
-                  { key: 'priceType'    as keyof FilterState, placeholder: 'Listing Type',  options: uniquePriceTypes,     allLabel: 'All Types'      },
-                  { key: 'propertyType' as keyof FilterState, placeholder: 'Property Type', options: uniquePropertyTypes,  allLabel: 'All Properties' },
+                  { key: 'status' as keyof FilterState, placeholder: 'Status', options: uniqueStatuses, allLabel: 'All Status' },
+                  { key: 'priceType' as keyof FilterState, placeholder: 'Listing Type', options: uniquePriceTypes, allLabel: 'All Types' },
+                  { key: 'propertyType' as keyof FilterState, placeholder: 'Property Type', options: uniquePropertyTypes, allLabel: 'All Properties' },
                 ].map(({ key, placeholder, options, allLabel }) => (
                   <Select key={key} value={filters[key]} onValueChange={v => handleFilterChange(key, v)}>
                     <SelectTrigger className="w-[148px] h-9 text-[13px] bg-background border-border">
@@ -376,8 +411,8 @@ export default function MyListingsPage() {
                       <div className="space-y-3">
                         {[
                           { id: 'propertyType', label: 'Property Type', key: 'propertyType' as keyof FilterState, options: uniquePropertyTypes, allLabel: 'All Properties' },
-                          { id: 'priceType',    label: 'Listing Type',  key: 'priceType'    as keyof FilterState, options: uniquePriceTypes,    allLabel: 'All Types'      },
-                          { id: 'status',       label: 'Status',        key: 'status'       as keyof FilterState, options: uniqueStatuses,      allLabel: 'All Status'     },
+                          { id: 'priceType', label: 'Listing Type', key: 'priceType' as keyof FilterState, options: uniquePriceTypes, allLabel: 'All Types' },
+                          { id: 'status', label: 'Status', key: 'status' as keyof FilterState, options: uniqueStatuses, allLabel: 'All Status' },
                         ].map(({ id, label, key, options, allLabel }) => (
                           <div key={id} className="space-y-1.5">
                             <Label htmlFor={id} className="text-[12.5px] font-medium text-muted-foreground">{label}</Label>
@@ -400,8 +435,8 @@ export default function MyListingsPage() {
                       <FilterSectionLabel>Location</FilterSectionLabel>
                       <div className="space-y-3">
                         {[
-                          { id: 'state', label: 'State', key: 'state' as keyof FilterState, options: uniqueStates,  allLabel: 'All States' },
-                          { id: 'city',  label: 'City',  key: 'city'  as keyof FilterState, options: uniqueCities, allLabel: 'All Cities' },
+                          { id: 'state', label: 'State', key: 'state' as keyof FilterState, options: uniqueStates, allLabel: 'All States' },
+                          { id: 'city', label: 'City', key: 'city' as keyof FilterState, options: uniqueCities, allLabel: 'All Cities' },
                         ].map(({ id, label, key, options, allLabel }) => (
                           <div key={id} className="space-y-1.5">
                             <Label htmlFor={id} className="text-[12.5px] font-medium text-muted-foreground">{label}</Label>
@@ -516,10 +551,10 @@ export default function MyListingsPage() {
                 )}
                 {([
                   ['propertyType', filters.propertyType, 'Type'],
-                  ['priceType',    filters.priceType,    'Listing'],
-                  ['status',       filters.status,       'Status'],
-                  ['city',         filters.city,         'City'],
-                  ['state',        filters.state,        'State'],
+                  ['priceType', filters.priceType, 'Listing'],
+                  ['status', filters.status, 'Status'],
+                  ['city', filters.city, 'City'],
+                  ['state', filters.state, 'State'],
                 ] as [keyof FilterState, string, string][]).filter(([, v]) => v !== 'all').map(([key, val, label]) => (
                   <Badge key={key} variant="secondary" className="gap-1.5 text-[11.5px] font-normal pl-2.5 pr-1.5 py-1">
                     {label}: {val}
@@ -593,7 +628,7 @@ export default function MyListingsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b border-border hover:bg-transparent">
-                      {['Property', 'Type', 'Area', 'Price/Sqft', 'Listing', 'Location', 'Available', 'Status', 'Added', ''].map(h => (
+                      {['Property', 'Type', 'Area', 'Price/Sqft', 'Listing', 'Location', 'Available', 'Status', 'Added', 'Actions'].map(h => (
                         <TableHead key={h} className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70 h-9 px-4">
                           {h}
                         </TableHead>
@@ -681,15 +716,58 @@ export default function MyListingsPage() {
                         </TableCell>
 
                         {/* Edit */}
-                        <TableCell className="px-4 py-3.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push(`property/editProperty/${p.id}`)}
-                            className="h-7 px-3 text-[12.5px] text-muted-foreground hover:text-foreground"
-                          >
-                            Edit
-                          </Button>
+                        <TableCell className="px-4 py-3.5 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end">
+
+                              <DropdownMenuItem
+                                onClick={() => router.push(`property/editProperty/${p.id}`)}
+                              >
+                                Edit
+                              </DropdownMenuItem>
+
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  Expiry
+                                </DropdownMenuSubTrigger>
+
+                                <DropdownMenuSubContent className="w-40">
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleExpiry(p.id, "1_month")}
+                                  >
+                                    1 Month
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleExpiry(p.id, "3_months")}
+                                  >
+                                    3 Months
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleExpiry(p.id, "6_months")}
+                                  >
+                                    6 Months
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleExpiry(p.id, "never")}
+                                  >
+                                    Never
+                                  </DropdownMenuItem>
+
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
