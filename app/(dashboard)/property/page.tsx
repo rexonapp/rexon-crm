@@ -249,8 +249,7 @@ export default function MyListingsPage() {
       })
   
       const data = await res.json()
-  console.log(data, "dataa")
-      if (data.success) {
+        if (data.success) {
         toast.success("Expiry updated successfully")
         fetchListings()
       } else {
@@ -716,7 +715,7 @@ export default function MyListingsPage() {
                         </TableCell>
 
                         {/* Edit */}
-                        <TableCell className="px-4 py-3.5 text-right">
+                        <TableCell className="px-4 py-3.5 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-7 w-7">
