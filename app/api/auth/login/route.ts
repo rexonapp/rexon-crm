@@ -168,13 +168,17 @@ export async function POST(request: NextRequest) {
     );
 
     // Set secure HTTP-only cookie
-    response.cookies.set('agentToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
+// AFTER
+response.cookies.set('agentToken', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',                                   
+  maxAge: 7 * 24 * 60 * 60,
+  path: '/',
+  domain: process.env.NODE_ENV === 'production'
+    ? '.rexonproperties.in'                               
+    : undefined,                                           
+});
 
     return response;
   } catch (error) {

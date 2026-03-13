@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
   const isMainDomain =
     hostname === PLATFORM_DOMAIN ||
     hostname === `www.${PLATFORM_DOMAIN}` ||
-    hostname.includes('vercel.app') || 
+    hostname.includes('vercel.app') ||
     hostname.includes('localhost');
 
   const subdomain =
@@ -21,17 +21,31 @@ export function middleware(request: NextRequest) {
       ? hostname.replace(`.${PLATFORM_DOMAIN}`, '')
       : null;
 
-  console.log('[middleware]', { hostname, pathname, isMainDomain, subdomain });
-
-  // ── Subdomain → rewrite to /profile/[slug] ────────────────────────────────
   if (subdomain) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/profile/${subdomain}${pathname === '/' ? '' : pathname}`;
-    console.log('[middleware] rewriting to:', url.pathname);
-    return NextResponse.rewrite(url);
+    if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/_next') ||
+      pathname === '/favicon.ico'
+    ) {
+      return NextResponse.next();
+    }
+
+    const token = request.cookies.get('agentToken')?.value;
+
+    if (pathname.startsWith('/login')) {
+      if (token && pathname !== '/login/change-password') {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+      return NextResponse.next();
+    }
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    return NextResponse.next();
   }
 
-  // ── Normal auth middleware ─────────────────────────────────────────────────
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
