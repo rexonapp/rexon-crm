@@ -4,27 +4,26 @@ const PLATFORM_DOMAIN = 'rexonproperties.in';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hostname = request.headers.get('host') || '';
+
+  const hostname =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    '';
 
   const isMainDomain =
     hostname === PLATFORM_DOMAIN ||
     hostname === `www.${PLATFORM_DOMAIN}` ||
-    hostname.includes('rexon-crm.vercel.app') ||
+    hostname.includes('vercel.app') || 
     hostname.includes('localhost');
 
-  const subdomain = !isMainDomain && hostname.endsWith(`.${PLATFORM_DOMAIN}`)
-    ? hostname.replace(`.${PLATFORM_DOMAIN}`, '')
-    : null;
+  const subdomain =
+    !isMainDomain && hostname.endsWith(`.${PLATFORM_DOMAIN}`)
+      ? hostname.replace(`.${PLATFORM_DOMAIN}`, '')
+      : null;
 
-  // ── TEMP DEBUG — remove after fixing ─────────────────────────────────────
-  console.log('[middleware]', {
-    hostname,
-    pathname,
-    isMainDomain,
-    subdomain,
-  });
-  // ─────────────────────────────────────────────────────────────────────────
+  console.log('[middleware]', { hostname, pathname, isMainDomain, subdomain });
 
+  // ── Subdomain → rewrite to /profile/[slug] ────────────────────────────────
   if (subdomain) {
     const url = request.nextUrl.clone();
     url.pathname = `/profile/${subdomain}${pathname === '/' ? '' : pathname}`;
@@ -32,6 +31,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  // ── Normal auth middleware ─────────────────────────────────────────────────
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
