@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { headers } from 'next/headers';
+import { query } from '@/lib/db';
 import { MapPin, Phone, MessageCircle, Building2, Globe, CheckCircle2, Mail } from 'lucide-react';
 
 interface AgentProfile {
@@ -19,25 +19,53 @@ interface AgentProfile {
 }
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
+// ── Query DB directly — bypasses all HTTP/subdomain routing issues ────────────
 async function getAgentProfile(slug: string): Promise<AgentProfile | null> {
   try {
-    const headersList = await headers();
-    const host = headersList.get('host') || '';
-    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-
-    const res = await fetch(
-      `${protocol}://${host}/api/agents/profile/${slug}`,
-      { cache: 'no-store' }
+    const result = await query(
+      `SELECT 
+         a.full_name, a.email, a.mobile_number, a.whatsapp_number,
+         a.city, a.state, a.agency_name, a.bio,
+         a.profile_photo_s3_url, a.languages_spoken,
+         a.is_verified, a.status,
+         d.domain_name, d.full_domain
+       FROM agents a
+       JOIN agent_domains d ON d.agent_id = a.id
+       WHERE d.domain_name = $1
+         AND d.is_active = true
+         AND d.status = 'active'
+         AND a.status = 'approved'`,
+      [slug]
     );
 
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error('Failed to fetch agent');
+    if (result.rows.length === 0) return null;
 
-    const data = await res.json();
-    return data.agent;
+    const agent = result.rows[0];
+
+    const languages: string[] = Array.isArray(agent.languages_spoken)
+      ? agent.languages_spoken
+      : agent.languages_spoken
+      ? agent.languages_spoken.split(',').map((l: string) => l.trim())
+      : [];
+
+    return {
+      full_name: agent.full_name,
+      email: agent.email,
+      mobile_number: agent.mobile_number,
+      whatsapp_number: agent.whatsapp_number,
+      city: agent.city,
+      state: agent.state,
+      agency_name: agent.agency_name,
+      bio: agent.bio,
+      profile_photo_s3_url: agent.profile_photo_s3_url,
+      languages_spoken: languages,
+      is_verified: agent.is_verified,
+      domain_name: agent.domain_name,
+      full_domain: agent.full_domain,
+    };
   } catch (error) {
     console.error('getAgentProfile error:', error);
     return null;
@@ -45,7 +73,8 @@ async function getAgentProfile(slug: string): Promise<AgentProfile | null> {
 }
 
 export default async function AgentPublicProfilePage({ params }: Props) {
-  const agent = await getAgentProfile(params.slug);
+  const { slug } = await params;
+  const agent = await getAgentProfile(slug);
 
   if (!agent) notFound();
 
@@ -106,7 +135,6 @@ export default async function AgentPublicProfilePage({ params }: Props) {
       `}</style>
 
       <div className="page-wrap">
-        {/* Top Nav */}
         <nav className="topnav">
           <div className="topnav-inner">
             <a href="https://rexonproperties.in" className="logo">
@@ -121,7 +149,6 @@ export default async function AgentPublicProfilePage({ params }: Props) {
         </nav>
 
         <div className="content">
-          {/* Hero Card */}
           <div className="hero-card">
             <div className="hero-cover" />
             <div className="hero-body">
@@ -160,7 +187,6 @@ export default async function AgentPublicProfilePage({ params }: Props) {
 
               <div className="divider" />
 
-              {/* Contact Buttons */}
               <div className={`contact-grid${!whatsappUrl ? ' single' : ''}`}>
                 <a href={`tel:${agent.mobile_number}`} className="btn btn-primary">
                   <Phone size={15} />
@@ -181,7 +207,6 @@ export default async function AgentPublicProfilePage({ params }: Props) {
             </div>
           </div>
 
-          {/* Bio */}
           {agent.bio && (
             <div className="card">
               <p className="card-label">About</p>
@@ -189,7 +214,6 @@ export default async function AgentPublicProfilePage({ params }: Props) {
             </div>
           )}
 
-          {/* Languages */}
           {agent.languages_spoken.length > 0 && (
             <div className="card">
               <p className="card-label">Languages Spoken</p>
@@ -201,7 +225,6 @@ export default async function AgentPublicProfilePage({ params }: Props) {
             </div>
           )}
 
-          {/* Email */}
           {agent.email && (
             <div className="card">
               <p className="card-label">Email</p>
@@ -223,7 +246,8 @@ export default async function AgentPublicProfilePage({ params }: Props) {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const agent = await getAgentProfile(params.slug);
+  const { slug } = await params;
+  const agent = await getAgentProfile(slug);
   if (!agent) return {};
 
   return {
