@@ -6,11 +6,6 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // ── Subdomain detection ───────────────────────────────────────────────────
-  // Extract subdomain from hostname
-  // e.g. "chakri.rexonproperties.in" → "chakri"
-  // e.g. "rexon-crm.vercel.app" → null (no subdomain)
-  // e.g. "localhost:3000" → null
   const isMainDomain =
     hostname === PLATFORM_DOMAIN ||
     hostname === `www.${PLATFORM_DOMAIN}` ||
@@ -21,18 +16,22 @@ export function middleware(request: NextRequest) {
     ? hostname.replace(`.${PLATFORM_DOMAIN}`, '')
     : null;
 
-  // ── Subdomain request → rewrite to /profile/[slug] ───────────────────────
-  // If a subdomain is detected, rewrite internally to the agent profile page.
-  // The URL in the browser stays as chakri.rexonproperties.in (clean).
+  // ── TEMP DEBUG — remove after fixing ─────────────────────────────────────
+  console.log('[middleware]', {
+    hostname,
+    pathname,
+    isMainDomain,
+    subdomain,
+  });
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (subdomain) {
     const url = request.nextUrl.clone();
     url.pathname = `/profile/${subdomain}${pathname === '/' ? '' : pathname}`;
+    console.log('[middleware] rewriting to:', url.pathname);
     return NextResponse.rewrite(url);
   }
 
-  // ── Everything below is normal auth middleware (no subdomain) ────────────
-
-  // Skip API routes, Next.js internals, and static files
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
@@ -43,7 +42,6 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get('agentToken')?.value;
 
-  // Already authenticated → bounce away from login pages
   if (pathname.startsWith('/login')) {
     if (token && pathname !== '/login/change-password') {
       return NextResponse.redirect(new URL('/', request.url));
@@ -51,7 +49,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protected pages — must have the auth cookie
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
