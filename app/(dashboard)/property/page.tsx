@@ -34,9 +34,9 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu"
-
 import { MoreVertical } from "lucide-react"
 import { toast } from "sonner"
+
 interface Property {
   id: number;
   property_name: string;
@@ -118,14 +118,26 @@ function StatCard({
 /* ── Status Badge ── */
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
-    Active: { label: 'Active', className: 'bg-foreground text-background' },
-    Approved: { label: 'Approved', className: 'bg-foreground text-background' },
-    Pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border border-border' },
-    Rejected: { label: 'Rejected', className: 'bg-destructive/10 text-destructive border border-destructive/20' },
+    Active: {
+      label: 'Active',
+      className: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+    },
+    Approved: {
+      label: 'Approved',
+      className: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+    },
+    Pending: {
+      label: 'Pending',
+      className: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
+    },
+    Rejected: {
+      label: 'Rejected',
+      className: 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800',
+    },
   };
   const info = map[status] ?? { label: status, className: 'bg-muted text-muted-foreground border border-border' };
   return (
-    <span className={cn('inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold leading-none', info.className)}>
+    <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold leading-none whitespace-nowrap', info.className)}>
       {info.label}
     </span>
   );
@@ -134,7 +146,7 @@ function StatusBadge({ status }: { status: string }) {
 /* ── Price Type Badge ── */
 function PriceTypeBadge({ type }: { type: string }) {
   return (
-    <span className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold leading-none bg-muted text-muted-foreground border border-border">
+    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold leading-none bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 whitespace-nowrap">
       {type}
     </span>
   );
@@ -247,15 +259,13 @@ export default function MyListingsPage() {
         },
         body: JSON.stringify({ id, type }),
       })
-  
       const data = await res.json()
-        if (data.success) {
+      if (data.success) {
         toast.success("Expiry updated successfully")
         fetchListings()
       } else {
         toast.error(data.message || "Failed to update expiry")
       }
-  
     } catch (error) {
       toast.error("Something went wrong")
       console.error(error)
@@ -335,13 +345,6 @@ export default function MyListingsPage() {
             <AlertDescription>{error} — Showing cached data</AlertDescription>
           </Alert>
         )}
-
-        {/* <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total"   value={properties.length}                               sub="All properties"  icon={Building2}  />
-          <StatCard label="Active"  value={properties.filter(p => p.status === 'Active').length}  sub="Currently listed" icon={TrendingUp}  />
-          <StatCard label="Pending" value={properties.filter(p => p.status === 'Pending').length} sub="Awaiting review"  icon={Clock}       />
-          <StatCard label="Filtered" value={filteredProperties.length}                      sub="Current view"    icon={Filter}      />
-        </div> */}
 
         {/* ── Search + Filter Bar ── */}
         <Card className="border-border bg-card shadow-none">
@@ -584,7 +587,7 @@ export default function MyListingsPage() {
         </Card>
 
         {/* ── Table Card ── */}
-        <Card className="border-border bg-card shadow-none">
+        <Card className="border-border bg-card shadow-none overflow-hidden">
           <CardHeader className="pb-4 border-b border-border px-5 pt-5">
             <div className="flex items-center justify-between">
               <div>
@@ -626,26 +629,53 @@ export default function MyListingsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-b border-border hover:bg-transparent">
-                      {['Property', 'Type', 'Area', 'Price/Sqft', 'Listing', 'Location', 'Available', 'Status', 'Added', 'Actions'].map(h => (
-                        <TableHead key={h} className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70 h-9 px-4">
-                          {h}
+                    <TableRow className="border-b border-border hover:bg-transparent bg-muted/40">
+                      {[
+                        { label: 'Property', cls: 'min-w-[220px]' },
+                        { label: 'Type', cls: 'min-w-[120px]' },
+                        { label: 'Area', cls: 'min-w-[100px]' },
+                        { label: 'Price / Sqft', cls: 'min-w-[110px]' },
+                        { label: 'Listing', cls: 'min-w-[100px]' },
+                        { label: 'Location', cls: 'min-w-[140px]' },
+                        { label: 'Available', cls: 'min-w-[130px]' },
+                        { label: 'Status', cls: 'min-w-[90px]' },
+                        { label: 'Added', cls: 'min-w-[110px]' },
+                        { label: 'Actions', cls: 'min-w-[60px] text-center' },
+                      ].map(({ label, cls }) => (
+                        <TableHead
+                          key={label}
+                          className={cn(
+                            'text-[11.5px] font-bold uppercase tracking-[0.07em] text-muted-foreground/60 h-11 px-4',
+                            cls
+                          )}
+                        >
+                          {label}
                         </TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentProperties.map((p) => (
-                      <TableRow key={p.id} className="border-b border-border hover:bg-accent/40 transition-colors">
-
+                    {currentProperties.map((p, idx) => (
+                      <TableRow
+                        key={p.id}
+                        className={cn(
+                          'border-b border-border transition-colors group',
+                          idx % 2 === 0 ? 'bg-background hover:bg-accent/40' : 'bg-muted/10 hover:bg-accent/40'
+                        )}
+                      >
                         {/* Title */}
-                        <TableCell className="px-4 py-3.5 max-w-[240px]">
+                        <TableCell className="px-4 py-4 max-w-[240px]">
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[13.5px] font-semibold text-foreground leading-tight">{p.title}</span>
+                              <span className="text-[14px] font-semibold text-foreground leading-tight">{p.title}</span>
                               {p.is_verified && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
                                   <CheckCircle className="h-3 w-3" />Verified
+                                </span>
+                              )}
+                              {p.is_featured && (
+                                <span className="inline-flex items-center text-[11px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-400">
+                                  Featured
                                 </span>
                               )}
                             </div>
@@ -658,44 +688,44 @@ export default function MyListingsPage() {
                         </TableCell>
 
                         {/* Type */}
-                        <TableCell className="px-4 py-3.5">
-                          <span className="text-[13px] text-muted-foreground">{p.property_type || '—'}</span>
+                        <TableCell className="px-4 py-4">
+                          <span className="text-[13.5px] font-medium text-foreground">{p.property_type || '—'}</span>
                         </TableCell>
 
                         {/* Area */}
-                        <TableCell className="px-4 py-3.5">
-                          <span className="text-[13.5px] font-medium text-foreground">
+                        <TableCell className="px-4 py-4">
+                          <span className="text-[13.5px] font-semibold text-foreground">
                             {p.space_available?.toLocaleString('en-IN') ?? '—'}
                           </span>
                           {p.space_unit && <span className="text-[12px] text-muted-foreground ml-1">{p.space_unit}</span>}
                         </TableCell>
 
                         {/* Price */}
-                        <TableCell className="px-4 py-3.5">
-                          <div className="flex items-center text-[13.5px] font-medium text-foreground">
-                            <IndianRupee className="h-3.5 w-3.5 mr-0.5 text-muted-foreground" />
+                        <TableCell className="px-4 py-4">
+                          <div className="flex items-center gap-0.5 text-[13.5px] font-semibold text-foreground">
+                            <IndianRupee className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             {p.price_per_sqft?.toLocaleString('en-IN') ?? '—'}
                           </div>
                         </TableCell>
 
                         {/* Listing type */}
-                        <TableCell className="px-4 py-3.5">
+                        <TableCell className="px-4 py-4">
                           {p.price_type ? <PriceTypeBadge type={p.price_type} /> : <span className="text-[13px] text-muted-foreground">—</span>}
                         </TableCell>
 
                         {/* Location */}
-                        <TableCell className="px-4 py-3.5">
+                        <TableCell className="px-4 py-4">
                           <div className="flex items-start gap-1.5">
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
-                              <div className="text-[13px] font-medium text-foreground leading-tight">{p.city || '—'}</div>
-                              <div className="text-[11.5px] text-muted-foreground">{p.state || ''}</div>
+                              <div className="text-[13.5px] font-medium text-foreground leading-tight">{p.city || '—'}</div>
+                              {p.state && <div className="text-[12px] text-muted-foreground mt-0.5">{p.state}</div>}
                             </div>
                           </div>
                         </TableCell>
 
                         {/* Available from */}
-                        <TableCell className="px-4 py-3.5">
+                        <TableCell className="px-4 py-4">
                           <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                             <Calendar className="h-3.5 w-3.5 shrink-0" />
                             {p.available_from ? formatDate(p.available_from) : '—'}
@@ -703,68 +733,42 @@ export default function MyListingsPage() {
                         </TableCell>
 
                         {/* Status */}
-                        <TableCell className="px-4 py-3.5">
+                        <TableCell className="px-4 py-4">
                           {p.status ? <StatusBadge status={p.status} /> : <span className="text-[13px] text-muted-foreground">—</span>}
                         </TableCell>
 
                         {/* Created */}
-                        <TableCell className="px-4 py-3.5">
-                          <span className="text-[12.5px] text-muted-foreground">
+                        <TableCell className="px-4 py-4">
+                          <span className="text-[13px] text-muted-foreground">
                             {p.created_at ? formatDate(p.created_at) : '—'}
                           </span>
                         </TableCell>
 
-                        {/* Edit */}
-                        <TableCell className="px-4 py-3.5 text-center">
+                        {/* Actions */}
+                        <TableCell className="px-4 py-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-50 group-hover:opacity-100 transition-opacity"
+                              >
                                 <MoreVertical className="h-4 w-4 text-muted-foreground" />
                               </Button>
                             </DropdownMenuTrigger>
-
                             <DropdownMenuContent align="end">
-
-                              <DropdownMenuItem
-                                onClick={() => router.push(`property/editProperty/${p.id}`)}
-                              >
+                              <DropdownMenuItem onClick={() => router.push(`property/editProperty/${p.id}`)}>
                                 Edit
                               </DropdownMenuItem>
-
                               <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                  Expiry
-                                </DropdownMenuSubTrigger>
-
+                                <DropdownMenuSubTrigger>Expiry</DropdownMenuSubTrigger>
                                 <DropdownMenuSubContent className="w-40">
-
-                                  <DropdownMenuItem
-                                    onClick={() => handleExpiry(p.id, "1_month")}
-                                  >
-                                    1 Month
-                                  </DropdownMenuItem>
-
-                                  <DropdownMenuItem
-                                    onClick={() => handleExpiry(p.id, "3_months")}
-                                  >
-                                    3 Months
-                                  </DropdownMenuItem>
-
-                                  <DropdownMenuItem
-                                    onClick={() => handleExpiry(p.id, "6_months")}
-                                  >
-                                    6 Months
-                                  </DropdownMenuItem>
-
-                                  <DropdownMenuItem
-                                    onClick={() => handleExpiry(p.id, "never")}
-                                  >
-                                    Never
-                                  </DropdownMenuItem>
-
+                                  <DropdownMenuItem onClick={() => handleExpiry(p.id, "1_month")}>1 Month</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleExpiry(p.id, "3_months")}>3 Months</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleExpiry(p.id, "6_months")}>6 Months</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleExpiry(p.id, "never")}>Never</DropdownMenuItem>
                                 </DropdownMenuSubContent>
                               </DropdownMenuSub>
-
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
