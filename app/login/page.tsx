@@ -100,8 +100,8 @@ export default function AgentLoginPage() {
         localStorage.setItem("tempPassword", password); 
         router.push("/login/change-password");
       } else {
-        router.push("/");
-      }
+        window.location.href = "/"; 
+            }
       
       }
       else {
