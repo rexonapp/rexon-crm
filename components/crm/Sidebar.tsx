@@ -38,8 +38,8 @@ const NAV_SECTIONS = [
   //   ],
   // },
   {
-    label:"properties",
-    items:[{icon:Building,label:"properties",href:"/property",badge:null}]
+    label:"Properties",
+    items:[{icon:Building,label:"Properties",href:"/property",badge:null}]
   },
   {
     label: "System",

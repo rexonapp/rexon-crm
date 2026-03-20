@@ -852,7 +852,7 @@ export default function WarehouseUploadForm() {
                   <Button
                     type="button"
                     onClick={() => setShowMap(!showMap)}
-                    className="bg-black-600 hover:bg-black-700 h-11"
+                    className="bg-black hover:bg-black-700 h-11"
                   >
                     <MapPin className="h-4 w-4 mr-2" />
                     {showMap ? 'Hide Map' : 'Select Location on Map'}
