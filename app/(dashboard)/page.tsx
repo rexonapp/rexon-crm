@@ -449,12 +449,12 @@ export default function DashboardPage() {
               {agent.status}
             </p>
           </div>
-          <div>
+          {/* <div>
             <span className="text-muted-foreground">Invite Status</span>
             <p className="text-foreground font-medium mt-1 capitalize">
               {agent.invite_status}
             </p>
-          </div>
+          </div> */}
         </div>
 
         {agent.kyc_document_s3_url && (
