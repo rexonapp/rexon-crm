@@ -280,7 +280,7 @@ export default function DashboardPage() {
 
             {/* Status Badges */}
             <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-              <Badge
+              {/* <Badge
                 variant={agent.is_verified ? "default" : "secondary"}
                 className="text-[11px] gap-1.5"
               >
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                     Unverified
                   </>
                 )}
-              </Badge>
+              </Badge> */}
 
               <Badge
                 variant={agent.status === "approved" ? "default" : "secondary"}
