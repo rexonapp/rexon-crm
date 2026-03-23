@@ -12,57 +12,49 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // 🔐 Auth check on mount
   useEffect(() => {
-    const token = localStorage.getItem("agentToken");
-
-    if (!token) {
-      router.replace("/login"); // redirect to login
-      setIsAuthenticated(false);
-    } else {
-      setIsAuthenticated(true);
-    }
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (res.ok) setIsAuthenticated(true);
+        else { setIsAuthenticated(false); router.replace("/login"); }
+      })
+      .catch(() => { setIsAuthenticated(false); router.replace("/login"); });
   }, [router]);
 
   const handleSignOut = () => {
-    const token = localStorage.getItem("agentToken");
-
+    // TODO: Remove these localStorage calls after ~1 week cleanup
     localStorage.removeItem("agentToken");
     localStorage.removeItem("agentId");
     localStorage.removeItem("agentData");
 
-    if (token) {
-      fetch("/api/agents/logout", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }).catch((err) => console.error("Logout error:", err));
-    }
-
-    router.replace("/login");
+    fetch("/api/agents/logout", { method: "POST" })
+      .catch((err) => console.error("Logout error:", err))
+      .finally(() => router.replace("/login"));
   };
 
-  // ⏳ Prevent render before auth check
-  if (isAuthenticated === null) {
-    return null; // or loading spinner
-  }
+  if (isAuthenticated === null) return null;
+  if (!isAuthenticated) return null;
 
-  // ❌ Not authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  // ✅ Authenticated → render dashboard
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar />
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden ml-64">
-        <TopNav onSignInClick={handleSignOut} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <main className="flex-1 overflow-auto pt-[60px] px-6 py-6 bg-background/50">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+        <TopNav
+          onSignInClick={handleSignOut}
+          onMenuClick={() => setSidebarOpen((prev) => !prev)}
+        />
+        <main className="flex-1 overflow-auto pt-[60px] px-4 py-4 md:px-6 md:py-6 bg-background/50">
           {children}
         </main>
       </div>

@@ -183,24 +183,21 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const agentId = localStorage.getItem("agentId");
-        const token = localStorage.getItem("agentToken");
-
-        if (!agentId || !token) {
+        const meRes = await fetch("/api/auth/me");
+        if (!meRes.ok) {
           setError("Session expired. Please log in again.");
           setLoading(false);
           return;
         }
-
-        const res = await fetch(`/api/agents/${agentId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        const meData = await meRes.json();
+        const agentId = meData.agent.id;
+  
+        const res = await fetch(`/api/agents/${agentId}`);
         if (!res.ok) {
           const data = await res.json();
           throw new Error(data.error || "Failed to fetch profile");
         }
-
+  
         const data = await res.json();
         setAgent(data.agent);
         setDomains(data.domains || []);
@@ -210,7 +207,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-
+  
     fetchData();
   }, []);
 
@@ -253,7 +250,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6 max-w-7xl sm:py-10 lg:py-10 xl:py-10 py-2">
       {/* Profile Header Card */}
       <Card className="p-6">
         <div className="flex flex-col sm:flex-row gap-6">

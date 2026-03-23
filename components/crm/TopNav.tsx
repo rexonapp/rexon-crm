@@ -118,17 +118,19 @@ function NavIconBtn({
   tooltip,
   children,
   onClick,
+  className,
 }: {
   tooltip?: string;
   children: React.ReactNode;
   onClick?: () => void;
+  className?: string;
 }) {
   const btn = (
     <Button
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg shrink-0"
+      className={cn("w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg shrink-0", className)}
     >
       {children}
     </Button>
@@ -142,24 +144,22 @@ function NavIconBtn({
   );
 }
 
-/* ─────────────────────────────────────────────
-   SEARCH
-   ───────────────────────────────────────────── */
-function SearchBar() {
-  return (
-    <div className="relative w-72">
-      <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-      <Input
-        type="text"
-        placeholder="Search contacts, deals…"
-        className="pl-10 pr-16 h-9 text-[13.5px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70"
-      />
-      <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 items-center rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-sm">
-        ⌘K
-      </kbd>
-    </div>
-  );
-}
+
+// function SearchBar() {
+//   return (
+//     <div className="relative w-72">
+//       <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+//       <Input
+//         type="text"
+//         placeholder="Search contacts, deals…"
+//         className="pl-10 pr-16 h-9 text-[13.5px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70"
+//       />
+//       <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 items-center rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-sm">
+//         ⌘K
+//       </kbd>
+//     </div>
+//   );
+// }
 
 /* ─────────────────────────────────────────────
    NOTIFICATIONS
@@ -257,29 +257,42 @@ function getInitials(name: string): string {
 /* ─────────────────────────────────────────────
    TOP NAV
    ───────────────────────────────────────────── */
-export default function TopNav({
-  onSignInClick,
-}: {
-  onSignInClick?: () => void;
-}) {
+   export default function TopNav({
+    onSignInClick,
+    onMenuClick,
+  }: {
+    onSignInClick?: () => void;
+    onMenuClick?: () => void;
+  }) {
   const pathname = usePathname();
   const { title, crumb } = getPageMeta(pathname);
   const [agent, setAgent] = useState<AgentData | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("agentData");
-      if (raw) setAgent(JSON.parse(raw));
-    } catch {
-      // ignore parse errors
-    }
+    fetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.agent) setAgent(data.agent);
+      })
+      .catch(() => {});
   }, []);
 
   const initials = agent ? getInitials(agent.full_name) : "–";
 
   return (
     <TooltipProvider delayDuration={200}>
-      <header className="fixed top-0 left-64 right-0 h-[60px] bg-background/95 backdrop-blur-sm border-b border-border flex items-center px-6 z-30 gap-5">
+      <header className="fixed top-0 left-0 right-0 lg:left-64 h-[60px] bg-background/95 backdrop-blur-sm border-b border-border flex items-center px-4 md:px-6 z-30 gap-3 md:gap-5">
+
+
+        {/* Page Title + Breadcrumb */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        >
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="w-5 h-5">
+            <path d="M3 5h14M3 10h14M3 15h14" />
+          </svg>
+        </button>
 
         {/* Page Title + Breadcrumb */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -292,20 +305,17 @@ export default function TopNav({
           </span>
         </div>
 
-        {/* Search */}
-        <SearchBar />
-
-        {/* Actions */}
+        {/* Actions — unchanged, just hide some on mobile */}
         <div className="flex items-center gap-1">
           <NotificationButton />
-          <NavIconBtn tooltip="Quick add (N)">
+          <NavIconBtn tooltip="Quick add (N)" className="hidden sm:flex">
             <PlusIcon className="w-[18px] h-[18px]" />
           </NavIconBtn>
-          <NavIconBtn tooltip="Help & docs">
+          <NavIconBtn tooltip="Help & docs" className="hidden sm:flex">
             <HelpCircleIcon className="w-[18px] h-[18px]" />
           </NavIconBtn>
 
-          <Separator orientation="vertical" className="h-5 mx-2" />
+          <Separator orientation="vertical" className="h-5 mx-2 hidden sm:block" />
 
           {/* Agent identity */}
           <div className="flex items-center gap-2.5 mr-1">
@@ -322,11 +332,11 @@ export default function TopNav({
             )}
             {agent && (
               <div className="hidden md:block leading-tight">
-                <p className="text-[13px] font-semibold text-foreground truncate max-w-32.5">
+                <p className="text-[13px] font-semibold text-foreground truncate max-w-[130px]">
                   {agent.full_name}
                 </p>
                 {agent.agency_name && (
-                  <p className="text-[11px] text-muted-foreground truncate max-w-32.5">
+                  <p className="text-[11px] text-muted-foreground truncate max-w-[130px]">
                     {agent.agency_name}
                   </p>
                 )}
@@ -338,8 +348,8 @@ export default function TopNav({
             onClick={onSignInClick}
             className="inline-flex items-center gap-1.5 border border-border hover:bg-accent text-foreground text-[13px] font-medium rounded-lg px-3 h-9 transition-colors leading-none cursor-pointer"
           >
-            <LogOutIcon className="w-3.75 h-3.75" />
-            Sign Out
+            <LogOutIcon className="w-[15px] h-[15px]" />
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
       </header>

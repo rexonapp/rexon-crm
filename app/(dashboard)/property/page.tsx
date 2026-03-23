@@ -302,7 +302,7 @@ export default function MyListingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background py-8 px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-8 px-6 lg:px-8  sm:py-10 lg:py-10 xl:py-10 py-2">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* ── Breadcrumb ── */}
@@ -347,8 +347,8 @@ export default function MyListingsPage() {
         )}
 
         {/* ── Search + Filter Bar ── */}
-        <Card className="border-border bg-card shadow-none">
-          <CardContent className="pt-4 pb-4 px-4">
+        {/* <Card className="border-border bg-card shadow-none">
+          <CardContent className="pt-4 pb-4 px-4"> */}
             <div className="flex flex-col lg:flex-row gap-3">
               {/* Search */}
               <div className="flex-1 relative">
@@ -583,8 +583,8 @@ export default function MyListingsPage() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+          {/* </CardContent>
+        </Card> */}
 
         {/* ── Table Card ── */}
         <Card className="border-border bg-card shadow-none overflow-hidden">

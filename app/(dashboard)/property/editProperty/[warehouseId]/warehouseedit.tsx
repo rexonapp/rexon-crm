@@ -375,7 +375,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen bg-background py-8 px-6 lg:px-8">
+    <div className="min-h-screen bg-background  sm:py-10 lg:py-10 xl:py-10 py-2 px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Breadcrumb */}

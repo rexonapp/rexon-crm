@@ -53,7 +53,7 @@ export default function AgentLoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
+  
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -63,48 +63,31 @@ export default function AgentLoginPage() {
           password,
         }),
       });
-
+  
       const data = await response.json();
       console.log("Login response:", data);
-
+  
       if (!response.ok) {
         setError(data.error || data.message || "Authentication failed");
         setLoading(false);
         return;
       }
-
-      // Store authentication token and agent data
+  
       if (data.token) {
-        localStorage.setItem("agentToken", data.token);
-        localStorage.setItem("agentId", data.agent.id);
-        localStorage.setItem(
-          "agentData",
-          JSON.stringify({
-            id: data.agent.id,
-            email: data.agent.email,
-            full_name: data.agent.full_name,
-            agency_name: data.agent.agency_name,
-            profile_photo_s3_url: data.agent.profile_photo_s3_url,
-            whatsapp_number: data.agent.whatsapp_number,
-          })
-        );
-
         // Check if using temporary password
-        const isTempPassword = data.agent.is_temporary_password === true 
-        || data.agent.is_temporary_password === "true"
-        || data.agent.is_temporary_password === 1;
-
-      console.log("is_temporary_password:", data.agent.is_temporary_password); 
-
-      if (isTempPassword) {
-        localStorage.setItem("tempPassword", password); 
-        router.push("/login/change-password");
+        const isTempPassword =
+          data.agent.is_temporary_password === true ||
+          data.agent.is_temporary_password === "true" ||
+          data.agent.is_temporary_password === 1;
+  
+        console.log("is_temporary_password:", data.agent.is_temporary_password);
+  
+        if (isTempPassword) {
+          router.push("/login/change-password");
+        } else {
+          window.location.href = "/";
+        }
       } else {
-        window.location.href = "/"; 
-            }
-      
-      }
-      else {
         setError("No token received. Please contact administrator.");
       }
     } catch (err) {
@@ -113,7 +96,6 @@ export default function AgentLoginPage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       {/* Container */}

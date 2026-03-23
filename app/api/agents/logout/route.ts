@@ -1,23 +1,27 @@
+// /api/agents/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-/**
- * POST /api/agents/logout
- * Clears the httpOnly agentToken cookie to end the session.
- */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   const response = NextResponse.json(
     { success: true, message: 'Logged out successfully' },
     { status: 200 }
   );
 
-  // Expire the auth cookie immediately
-  response.cookies.set('agentToken', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 0,
+  const host = request.headers.get('host') || '';
+  const isVercelOrLocal =
+    host.includes('vercel.app') || host.includes('localhost');
+
+  const cookieDomain = isVercelOrLocal ? undefined : '.rexonproperties.in';
+
+  const cookieBase = {
     path: '/',
-  });
+    domain: cookieDomain,
+  };
+
+  // Clear all three cookies set during login
+  response.cookies.delete({ name: 'agentToken', ...cookieBase });
+  response.cookies.delete({ name: 'agentId', ...cookieBase });
+  response.cookies.delete({ name: 'agentData', ...cookieBase });
 
   return response;
 }

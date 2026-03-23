@@ -22,9 +22,7 @@ interface AgentData {
   profile_photo_s3_url?: string;
 }
 
-/* ─────────────────────────────────────────────
-   NAV CONFIG
-   ───────────────────────────────────────────── */
+
 const NAV_SECTIONS = [
   {
     label: "Overview",
@@ -91,9 +89,7 @@ function ChevronUpIcon({ className }: { className?: string }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   NAV ITEM  — 36px tall, 15px text (matches Linear)
-   ───────────────────────────────────────────── */
+
 function NavItem({
   icon: Icon,
   label,
@@ -142,9 +138,7 @@ function NavItem({
   );
 }
 
-/* ─────────────────────────────────────────────
-   HELPERS
-   ───────────────────────────────────────────── */
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -154,51 +148,58 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-/* ─────────────────────────────────────────────
-   SIDEBAR  — w-64 gives ample breathing room
-   ───────────────────────────────────────────── */
-export default function Sidebar() {
-  const pathname = usePathname();
+
+export default function Sidebar({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {  const pathname = usePathname();
   const router = useRouter();
   const [agent, setAgent] = useState<AgentData | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("agentData");
-      if (raw) setAgent(JSON.parse(raw));
-    } catch {
-      // ignore parse errors
-    }
+    fetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.agent) setAgent(data.agent);
+      })
+      .catch(() => {});
   }, []);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const handleSignOut = () => {
-    const token = localStorage.getItem("agentToken");
     localStorage.removeItem("agentToken");
     localStorage.removeItem("agentId");
     localStorage.removeItem("agentData");
-    if (token) {
-      fetch("/api/agents/logout", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
-    }
-    router.replace("/login");
+  
+    fetch("/api/agents/logout", {
+      method: "POST",
+    })
+      .catch((err) => console.error("Logout error:", err))
+      .finally(() => {
+        router.replace("/login");
+      });
   };
 
   const initials = agent ? getInitials(agent.full_name) : "–";
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col fixed inset-y-0 left-0 z-40">
-
-      {/* ── Logo — exact same height as TopNav ── */}
-      <div className="h-[60px] px-5 flex items-center gap-3 border-b border-border shrink-0">
+    <aside
+    className={cn(
+      "w-64 bg-card border-r border-border flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-200",
+      open ? "translate-x-0" : "-translate-x-full",
+      "lg:translate-x-0"
+    )}
+  >
+     <div className="h-[60px] px-5 flex items-center gap-3 border-b border-border shrink-0">
         <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center shrink-0 shadow-sm">
           <span className="text-[14px] font-extrabold text-background tracking-tight">R</span>
         </div>
-        <div>
+        <div className="flex-1">
           <div className="text-[16px] font-semibold text-foreground leading-tight tracking-tight">
             Rexon
           </div>
@@ -206,9 +207,17 @@ export default function Sidebar() {
             Agent Portal
           </div>
         </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="w-5 h-5">
+            <path d="M5 5l10 10M15 5L5 15" />
+          </svg>
+        </button>
       </div>
 
-      {/* ── Navigation ───────────────────────── */}
       <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>

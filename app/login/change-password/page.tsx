@@ -53,8 +53,10 @@ export default function ChangePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isTempPrefilled, setIsTempPrefilled] = useState(false);
 
   const requirements = validatePassword(newPassword);
   const isValid =
@@ -62,14 +64,21 @@ export default function ChangePasswordPage() {
     newPassword === confirmPassword &&
     currentPassword.length > 0;
 
-  // ✅ Prefill temp password from localStorage on mount
+  // ✅ Try prefill from sessionStorage (set by login page), else let user type it
   useEffect(() => {
-    const tempPassword = localStorage.getItem("tempPassword");
+    // Verify session is valid first
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (!res.ok) router.push("/login");
+      })
+      .catch(() => router.push("/login"));
+
+    // Prefill temp password from sessionStorage if available
+    const tempPassword = sessionStorage.getItem("tempPassword");
     if (tempPassword) {
       setCurrentPassword(tempPassword);
-    } else {
-      // No temp password found — shouldn't be on this page
-      router.push("/login");
+      setIsTempPrefilled(true);
+      sessionStorage.removeItem("tempPassword"); // clear immediately after reading
     }
   }, [router]);
 
@@ -90,22 +99,12 @@ export default function ChangePasswordPage() {
     setLoading(true);
 
     try {
-      const agentId = localStorage.getItem("agentId");
-      const token = localStorage.getItem("agentToken");
-
-      if (!agentId || !token) {
-        router.push("/login");
-        return;
-      }
-
+      // No agentId or token from localStorage — /api/auth/me resolves identity
+      // The cookie is sent automatically with the request
       const response = await fetch("/api/agents/change-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agentId,
           currentPassword,
           newPassword,
         }),
@@ -119,7 +118,7 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      // ✅ Clean up temp password from localStorage after success
+      // TODO: Remove after ~1 week cleanup
       localStorage.removeItem("tempPassword");
 
       setSuccess(true);
@@ -173,7 +172,7 @@ export default function ChangePasswordPage() {
             </div>
           )}
 
-          {/* ✅ Prefilled + disabled temp password field */}
+          {/* Temp password field — prefilled from sessionStorage or manually entered */}
           <div className="space-y-2">
             <Label htmlFor="current" className="text-[13px] font-semibold text-foreground">
               Temporary Password
@@ -182,19 +181,35 @@ export default function ChangePasswordPage() {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="current"
-                type="password"
+                type={showCurrentPassword ? "text" : "password"}
+                placeholder="Enter your temporary password"
                 value={currentPassword}
-                disabled={true}
-                className="pl-10 pr-10 h-10 text-[14px] bg-muted/50 border-transparent cursor-not-allowed opacity-60"
+                onChange={(e) => {
+                  setCurrentPassword(e.target.value);
+                  setIsTempPrefilled(false);
+                }}
+                disabled={loading}
+                className="pl-10 pr-16 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
                 required
               />
-              {/* Lock badge to signal it's auto-filled */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <ShieldCheck className="w-4 h-4 text-green-600" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                {isTempPrefilled && (
+                  <ShieldCheck className="w-4 h-4 text-green-600" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={loading}
+                >
+                  {showCurrentPassword ? "Hide" : "Show"}
+                </button>
               </div>
             </div>
             <p className="text-[11.5px] text-muted-foreground">
-              Auto-filled from your login session
+              {isTempPrefilled
+                ? "Auto-filled from your login session"
+                : "Enter the temporary password from your invite email"}
             </p>
           </div>
 
