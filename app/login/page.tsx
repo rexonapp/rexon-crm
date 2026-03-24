@@ -14,6 +14,7 @@ import {
   Loader2,
   Info,
 } from "lucide-react";
+import Link from "next/link";
 
 /* ─────────────────────────────────────────────
    LOGO
@@ -158,19 +159,28 @@ export default function AgentLoginPage() {
 
           {/* Password Field */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-[13px] font-semibold text-foreground">
-                Password
-              </Label>
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-                disabled={loading}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
+          <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-[13px] font-semibold text-foreground">
+                  Password
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/login/forgot-password"
+                    className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    Forgot password?
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                    disabled={loading}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
