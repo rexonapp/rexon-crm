@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import MapSelector from './MapSelector';
+import { useRouter } from 'next/navigation';
 
 interface WarehouseFormData {
   title: string;
@@ -136,7 +137,7 @@ export default function WarehouseUploadForm() {
   const [imageToDelete, setImageToDelete] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
-
+  const router = useRouter();
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
       case 'title':
@@ -1264,6 +1265,7 @@ export default function WarehouseUploadForm() {
                 <Button
                   type="button"
                   variant="outline"
+                  onClick={()=>router.back()}
                   disabled={uploading}
                   className="w-full py-6 text-base font-medium border-2 hover:bg-gray-50"
                 >

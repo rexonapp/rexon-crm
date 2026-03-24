@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface AgentData {
   id: string;
@@ -308,9 +309,11 @@ function getInitials(name: string): string {
         {/* Actions — unchanged, just hide some on mobile */}
         <div className="flex items-center gap-1">
           <NotificationButton />
+          <Link href='/property/addProperty'>
           <NavIconBtn tooltip="Quick add (N)" className="hidden sm:flex">
             <PlusIcon className="w-[18px] h-[18px]" />
           </NavIconBtn>
+          </Link>
           <NavIconBtn tooltip="Help & docs" className="hidden sm:flex">
             <HelpCircleIcon className="w-[18px] h-[18px]" />
           </NavIconBtn>
