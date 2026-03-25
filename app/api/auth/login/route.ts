@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (agents.status !== 'approved') {
       return NextResponse.json(
-        { success: false, error: 'Your account is inactive. Please contact your administrator.' },
+        { success: false, error: 'Your account is not approved yet, Please contact your administrator.' },
         { status: 401 }
       );
     }
