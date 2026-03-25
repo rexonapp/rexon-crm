@@ -21,27 +21,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { agentId, currentPassword, newPassword } = await request.json();
 
-    // Validate input
-    if (!agentId || !currentPassword || !newPassword) {
+    const agentId = session.agentId; 
+    const { currentPassword, newPassword } = await request.json();
+    
+    if (!currentPassword || !newPassword) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Agent ID, current password, and new password are required',
-        },
+        { success: false, error: 'Current password and new password are required' },
         { status: 400 }
       );
     }
-
-    // Verify agentId matches token
-    if (session.agentId !== agentId) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized - Agent ID mismatch' },
-        { status: 401 }
-      );
-    }
-
     // Validate new password strength
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[a-zA-Z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;

@@ -84,6 +84,7 @@ export default function AgentLoginPage() {
         console.log("is_temporary_password:", data.agent.is_temporary_password);
   
         if (isTempPassword) {
+          sessionStorage.setItem("tempPassword", password);  
           router.push("/login/change-password");
         } else {
           window.location.href = "/";

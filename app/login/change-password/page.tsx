@@ -188,7 +188,7 @@ export default function ChangePasswordPage() {
                   setCurrentPassword(e.target.value);
                   setIsTempPrefilled(false);
                 }}
-                disabled={loading}
+                disabled
                 className="pl-10 pr-16 h-10 text-[14px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70 disabled:opacity-50"
                 required
               />
