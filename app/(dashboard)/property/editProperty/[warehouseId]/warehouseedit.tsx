@@ -52,7 +52,6 @@ interface WarehouseFormData {
   contactPersonName: string;
   contactPersonPhone: string;
   contactPersonEmail: string;
-  contactPersonDesignation: string;
   latitude: string;
   longitude: string;
   amenities: string[];
@@ -187,7 +186,6 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
     contactPersonName:        initialData.contact_person_name || '',
     contactPersonPhone:       initialData.contact_person_phone || '',
     contactPersonEmail:       initialData.contact_person_email || '',
-    contactPersonDesignation: initialData.contact_person_designation || '',
     latitude:                 initialData.latitude?.toString() || '',
     longitude:                initialData.longitude?.toString() || '',
     amenities:                Array.isArray(initialData.amenities) ? initialData.amenities : [],
@@ -688,13 +686,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                       placeholder="Contact person name" className="h-9 text-[13.5px]"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contactDesignation" className="text-[12.5px] font-medium text-muted-foreground">Designation</Label>
-                    <Input id="contactDesignation" value={formData.contactPersonDesignation}
-                      onChange={e => setFormData(p => ({ ...p, contactPersonDesignation: e.target.value }))}
-                      placeholder="e.g., Property Manager" className="h-9 text-[13.5px]"
-                    />
-                  </div>
+                
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
