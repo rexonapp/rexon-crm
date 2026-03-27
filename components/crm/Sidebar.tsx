@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
@@ -22,22 +22,14 @@ interface AgentData {
   profile_photo_s3_url?: string;
 }
 
-
 const NAV_SECTIONS = [
   {
     label: "Overview",
     items: [{ icon: LayoutIcon, label: "Dashboard", href: "/", badge: null }],
   },
-  // {
-  //   label: "Management",
-  //   items: [
-  //     { icon: UsersIcon,  label: "Agents",  href: "/agents",  badge: "" },
-  //     { icon: GlobeIcon,  label: "Domains", href: "/domains", badge: null },
-  //   ],
-  // },
   {
-    label:"Properties",
-    items:[{icon:Building,label:"Properties",href:"/property",badge:null}]
+    label: "Properties",
+    items: [{ icon: Building, label: "Properties", href: "/property", badge: null }],
   },
   {
     label: "System",
@@ -57,7 +49,6 @@ function LayoutIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
 function SettingsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -88,7 +79,6 @@ function ChevronUpIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
 
 function NavItem({
   icon: Icon,
@@ -138,7 +128,6 @@ function NavItem({
   );
 }
 
-
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -148,24 +137,42 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-
 export default function Sidebar({
   open,
   onClose,
 }: {
   open: boolean;
   onClose: () => void;
-}) {  const pathname = usePathname();
+}) {
+  const pathname = usePathname();
   const router = useRouter();
   const [agent, setAgent] = useState<AgentData | null>(null);
 
+  // ✅ Extracted into useCallback so the event listener can reference the same function
+  const fetchAgent = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.agent) setAgent(data.agent);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.agent) setAgent(data.agent);
-      })
-      .catch(() => {});
+    fetchAgent();
+  }, [fetchAgent]);
+
+  // ✅ Listen for profile photo updates dispatched by SettingsPage
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { profile_photo_s3_url } = (e as CustomEvent).detail as { profile_photo_s3_url: string };
+      // Optimistically update the URL without a full re-fetch
+      setAgent((prev) => prev ? { ...prev, profile_photo_s3_url } : prev);
+    };
+    window.addEventListener("profilePhotoUpdated", handler);
+    return () => window.removeEventListener("profilePhotoUpdated", handler);
   }, []);
 
   const isActive = (href: string) =>
@@ -175,10 +182,8 @@ export default function Sidebar({
     localStorage.removeItem("agentToken");
     localStorage.removeItem("agentId");
     localStorage.removeItem("agentData");
-  
-    fetch("/api/agents/logout", {
-      method: "POST",
-    })
+
+    fetch("/api/agents/logout", { method: "POST" })
       .catch((err) => console.error("Logout error:", err))
       .finally(() => {
         router.replace("/login");
@@ -189,13 +194,13 @@ export default function Sidebar({
 
   return (
     <aside
-    className={cn(
-      "w-64 bg-card border-r border-border flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-200",
-      open ? "translate-x-0" : "-translate-x-full",
-      "lg:translate-x-0"
-    )}
-  >
-     <div className="h-[60px] px-5 flex items-center gap-3 border-b border-border shrink-0">
+      className={cn(
+        "w-64 bg-card border-r border-border flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-200",
+        open ? "translate-x-0" : "-translate-x-full",
+        "lg:translate-x-0"
+      )}
+    >
+      <div className="h-[60px] px-5 flex items-center gap-3 border-b border-border shrink-0">
         <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center shrink-0 shadow-sm">
           <span className="text-[14px] font-extrabold text-background tracking-tight">R</span>
         </div>
@@ -247,7 +252,7 @@ export default function Sidebar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-accent transition-colors text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              {/* Avatar */}
+              {/* ✅ Avatar — reflects updated URL immediately */}
               {agent?.profile_photo_s3_url ? (
                 <img
                   src={agent.profile_photo_s3_url}
@@ -284,7 +289,7 @@ export default function Sidebar({
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="text-[13.5px] gap-2.5 py-2 px-3 cursor-pointer">
-              <Link href="/">
+              <Link href="/profile">
                 <UserIcon className="w-[16px] h-[16px] shrink-0" />
                 Profile
               </Link>

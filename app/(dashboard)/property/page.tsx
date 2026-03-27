@@ -189,7 +189,7 @@ export default function MyListingsPage() {
       if (data.success) { setProperties(data.properties || []); setError(null); }
       else setError(data.error || 'Failed to load properties');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load listings. Please try again.');
+      setError(err instanceof Error ? err.message : 'Unable to load Properties. Please try again.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -277,7 +277,7 @@ export default function MyListingsPage() {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-        <p className="text-[14px] text-muted-foreground">Loading your listings…</p>
+        <p className="text-[14px] text-muted-foreground">Loading your Properties</p>
       </div>
     </div>
   );
@@ -309,14 +309,14 @@ export default function MyListingsPage() {
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
           <span>/</span>
-          <span className="text-foreground font-medium">My Listings</span>
+          <span className="text-foreground font-medium">My Properties</span>
         </div>
 
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold text-foreground tracking-tight">My Listings</h1>
-            <p className="text-[13.5px] text-muted-foreground mt-0.5">Manage and track all your property listings</p>
+            <h1 className="text-[22px] font-semibold text-foreground tracking-tight">My Properties</h1>
+            <p className="text-[13.5px] text-muted-foreground mt-0.5">Manage and track all your properties</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -354,7 +354,7 @@ export default function MyListingsPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-muted-foreground" />
                 <Input
-                  placeholder="Search by title, description, address…"
+                  placeholder="Search by property, City, type"
                   value={filters.search}
                   onChange={e => handleFilterChange('search', e.target.value)}
                   className="pl-9 h-9 text-[13.5px] bg-background border-border"
@@ -591,7 +591,7 @@ export default function MyListingsPage() {
           <CardHeader className="pb-4 border-b border-border px-5 pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-[15px] font-semibold text-foreground">Property Listings</CardTitle>
+                <CardTitle className="text-[15px] font-semibold text-foreground">Properties</CardTitle>
                 <CardDescription className="text-[12.5px] mt-0.5">
                   {filteredProperties.length === properties.length
                     ? `${properties.length} ${properties.length === 1 ? 'listing' : 'listings'}`
@@ -616,7 +616,7 @@ export default function MyListingsPage() {
                     : 'Try adjusting your filters to see more results.'}
                 </p>
                 {properties.length === 0 ? (
-                  <Link href="/property">
+                  <Link href="/property/addProperty">
                     <Button size="sm"><Building2 className="h-3.5 w-3.5 mr-2" />Add Property</Button>
                   </Link>
                 ) : (
@@ -819,7 +819,7 @@ export default function MyListingsPage() {
               </PaginationContent>
             </Pagination>
             <p className="text-[12.5px] text-muted-foreground">
-              {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredProperties.length)} of {filteredProperties.length} listings
+              {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredProperties.length)} of {filteredProperties.length} Properties
               {filteredProperties.length !== properties.length && ` (filtered from ${properties.length})`}
             </p>
           </div>

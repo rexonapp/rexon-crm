@@ -1,182 +1,75 @@
-//(dashoboard)/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
-  MapPin,
-  Building2,
-  FileText,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Mail,
-  Phone,
-  Globe,
-  XCircle,
-  Clock,
+  Loader2, AlertCircle, MapPin, Building2, Phone, Mail,
+  ExternalLink, ChevronRight, LayoutGrid, Users, Activity
 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
-/* ─────────────────────────────────────────────
-   TYPES
-   ───────────────────────────────────────────── */
 interface AgentProfile {
   id: string;
-  email: string;
   full_name: string;
-  mobile_number: string;
-  whatsapp_number?: string;
-  city: string;
-  state: string;
-  address: string;
-  pincode: string;
-  agency_name: string;
-  bio?: string;
-  languages_spoken?: string;
+  email: string;
+  mobile_number?: string;
+  agency_name?: string;
+  city?: string;
+  status: string;
   profile_photo_s3_url?: string;
-  kyc_document_s3_url?: string;
-  is_verified: boolean;
-  status: string;
-  invite_status: string;
-  terms_accepted: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
-interface AgentDomain {
-  id: string;
-  domain_name: string;
-  full_domain: string;
-  status: string;
-  is_active: boolean;
-  checked_at?: string;
-  activated_at?: string;
-  created_at: string;
-}
-
-/* ─────────────────────────────────────────────
-   INFO ROW
-   ───────────────────────────────────────────── */
-function InfoRow({
-  label,
-  value,
-  icon,
-}: {
+interface FooterLink {
   label: string;
-  value: string | undefined;
-  icon?: React.ReactNode;
-}) {
-  if (!value) return null;
-
-  return (
-    <div className="flex items-center gap-3 text-[13px]">
-      {icon && <div className="text-muted-foreground shrink-0">{icon}</div>}
-      <div className="flex-1 min-w-0">
-        <p className="text-muted-foreground">{label}</p>
-        <p className="text-foreground font-medium truncate">{value}</p>
-      </div>
-    </div>
-  );
+  url: string;
 }
 
-/* ─────────────────────────────────────────────
-   DOMAIN CARD
-   ───────────────────────────────────────────── */
-function DomainCard({ domain }: { domain: AgentDomain }) {
-  const isActive = domain.is_active;
-  const statusLabel =
-    domain.status === "active"
-      ? "Active"
-      : domain.status === "pending"
-      ? "Pending"
-      : domain.status === "released"
-      ? "Released"
-      : domain.status;
-
-  return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-foreground truncate">
-              {domain.full_domain || domain.domain_name}
-            </p>
-            {domain.full_domain && domain.domain_name !== domain.full_domain && (
-              <p className="text-[11px] text-muted-foreground truncate">
-                {domain.domain_name}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Badge
-            variant={isActive ? "default" : "secondary"}
-            className="text-[10px] gap-1"
-          >
-            {isActive ? (
-              <CheckCircle2 className="w-3 h-3" />
-            ) : (
-              <XCircle className="w-3 h-3" />
-            )}
-            {statusLabel}
-          </Badge>
-        </div>
-      </div>
-
-      <Separator className="my-2" />
-
-      <div className="space-y-1.5 text-[12px]">
-        {domain.activated_at && (
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Activated</span>
-            <span className="text-foreground font-medium">
-              {new Date(domain.activated_at).toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
-          </div>
-        )}
-        {domain.checked_at && (
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Last checked
-            </span>
-            <span className="text-foreground font-medium">
-              {new Date(domain.checked_at).toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Added</span>
-          <span className="text-foreground font-medium">
-            {new Date(domain.created_at).toLocaleDateString("en-IN", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        </div>
-      </div>
-    </Card>
-  );
+interface DashboardSettings {
+  hero_background_url?: string;
+  hero_background_color?: string;
+  hero_title?: string;
+  hero_subtitle?: string;
+  footer_text?: string;
+  footer_links?: FooterLink[];
+  footer_show_contact?: boolean;
 }
 
-/* ─────────────────────────────────────────────
-   DASHBOARD PAGE
-   ───────────────────────────────────────────── */
+
+
+function getFirstName(fullName: string): string {
+  return fullName.split(" ")[0];
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+const DEFAULT_SETTINGS: DashboardSettings = {
+  hero_background_color: "#0a0f1e",
+  hero_title: "Welcome to Your Portal",
+  hero_subtitle: "Manage your listings, track leads, and grow your real estate business.",
+  footer_text: "© {year} Rexon Properties. All rights reserved.",
+  footer_links: [
+    { label: "Support", url: "#" },
+    { label: "Privacy Policy", url: "#" },
+    { label: "Terms", url: "#" },
+  ],
+  footer_show_contact: true,
+};
+
+// const QUICK_LINKS = [
+//   { label: "My Listings", icon: LayoutGrid, href: "#" },
+//   { label: "Active Leads", icon: Users, href: "#" },
+//   { label: "Performance", icon: Activity, href: "#" },
+// ];
+
 export default function DashboardPage() {
   const [agent, setAgent] = useState<AgentProfile | null>(null);
-  const [domains, setDomains] = useState<AgentDomain[]>([]);
+  const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -191,23 +84,33 @@ export default function DashboardPage() {
         }
         const meData = await meRes.json();
         const agentId = meData.agent.id;
-  
-        const res = await fetch(`/api/agents/${agentId}`);
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to fetch profile");
+
+        const [agentRes, settingsRes] = await Promise.all([
+          fetch(`/api/agents/${agentId}`),
+          fetch(`/api/agents/${agentId}/dashboard-settings`),
+        ]);
+
+        if (!agentRes.ok) {
+          const data = await agentRes.json();
+          throw new Error(data.error || "Failed to fetch agent");
         }
-  
-        const data = await res.json();
-        setAgent(data.agent);
-        setDomains(data.domains || []);
+
+        const agentData = await agentRes.json();
+        setAgent(agentData.agent);
+
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          if (settingsData.settings) {
+            setSettings((prev) => ({ ...prev, ...settingsData.settings }));
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load dashboard");
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, []);
 
@@ -215,21 +118,19 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] gap-4">
         <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-        <p className="text-[14px] text-muted-foreground">Loading dashboard...</p>
+        <p className="text-[14px] text-muted-foreground">Loading…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl">
+      <div className="max-w-7xl sm:py-10 py-4">
         <Card className="p-6 border-destructive/20 bg-destructive/5">
           <div className="flex gap-3">
             <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-[14px] font-semibold text-destructive mb-1">
-                Error Loading Dashboard
-              </h3>
+              <h3 className="text-[14px] font-semibold text-destructive mb-1">Error Loading Dashboard</h3>
               <p className="text-[13px] text-destructive/80">{error}</p>
             </div>
           </div>
@@ -238,239 +139,212 @@ export default function DashboardPage() {
     );
   }
 
-  if (!agent) {
-    return (
-      <div className="max-w-7xl">
-        <Card className="p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-[14px] text-muted-foreground">No agent data found</p>
-        </Card>
-      </div>
-    );
-  }
+  const hasBgImage = !!settings.hero_background_url;
+
+  const heroStyle: React.CSSProperties = hasBgImage
+    ? {
+        backgroundImage: `url(${settings.hero_background_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }
+    : {
+        backgroundColor: settings.hero_background_color || "#0a0f1e",
+      };
+
+  const footerText = (settings.footer_text || DEFAULT_SETTINGS.footer_text || "")
+    .replace("{year}", new Date().getFullYear().toString());
 
   return (
-    <div className="space-y-6 max-w-7xl sm:py-10 lg:py-10 xl:py-10 py-2">
-      {/* Profile Header Card */}
-      <Card className="p-6">
-        <div className="flex flex-col sm:flex-row gap-6">
-          {/* Avatar */}
-          <div className="flex flex-col items-center sm:items-start gap-4 shrink-0">
-            {agent.profile_photo_s3_url ? (
-              <img
-                src={agent.profile_photo_s3_url}
-                alt={agent.full_name}
-                className="w-24 h-24 rounded-lg object-cover border border-border"
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center border border-border">
-                <span className="text-[22px] font-semibold text-muted-foreground">
-                  {agent.full_name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </span>
-              </div>
-            )}
+    <div className="flex flex-col min-h-[calc(100vh-60px)] my-10">
 
-            {/* Status Badges */}
-            <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-              {/* <Badge
-                variant={agent.is_verified ? "default" : "secondary"}
-                className="text-[11px] gap-1.5"
-              >
-                {agent.is_verified ? (
-                  <>
-                    <CheckCircle2 className="w-3 h-3" />
-                    Verified
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="w-3 h-3" />
-                    Unverified
-                  </>
-                )}
-              </Badge> */}
-
-              <Badge
-                variant={agent.status === "approved" ? "default" : "secondary"}
-                className="text-[11px] capitalize"
-              >
-                {agent.status}
-              </Badge>
-            </div>
-          </div>
-
-          <Separator orientation="vertical" className="hidden sm:block h-auto" />
-
-          {/* Profile Info */}
-          <div className="flex-1">
-            <div className="mb-4">
-              <h2 className="text-[24px] font-semibold text-foreground mb-1">
-                {agent.full_name}
-              </h2>
-              {agent.agency_name && (
-                <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4" />
-                  {agent.agency_name}
-                </p>
-              )}
-            </div>
-
-            {/* Contact Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InfoRow
-                label="Email"
-                value={agent.email}
-                icon={<Mail className="w-4 h-4" />}
-              />
-              <InfoRow
-                label="Mobile"
-                value={agent.mobile_number}
-                icon={<Phone className="w-4 h-4" />}
-              />
-              {agent.whatsapp_number && (
-                <InfoRow
-                  label="WhatsApp"
-                  value={agent.whatsapp_number}
-                  icon={<Phone className="w-4 h-4" />}
-                />
-              )}
-              {(agent.city || agent.state) && (
-                <InfoRow
-                  label="Location"
-                  value={[agent.city, agent.state].filter(Boolean).join(", ")}
-                  icon={<MapPin className="w-4 h-4" />}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Bio & Languages */}
-      {(agent.bio || agent.languages_spoken) && (
-        <Card className="p-6">
-          <h3 className="text-[14px] font-semibold text-foreground mb-4">
-            About
-          </h3>
-          <div className="space-y-4">
-            {agent.bio && (
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-1.5">
-                  Bio
-                </p>
-                <p className="text-[13px] text-foreground leading-relaxed">
-                  {agent.bio}
-                </p>
-              </div>
-            )}
-            {agent.languages_spoken && (
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-1.5">
-                  Languages Spoken
-                </p>
-                <p className="text-[13px] text-foreground">
-                  {agent.languages_spoken}
-                </p>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Domains Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-[18px] font-semibold text-foreground">
-              Your Domain
-            </h3>
-            <p className="text-[12px] text-muted-foreground mt-1">
-              {domains.length} domain{domains.length !== 1 ? "s" : ""} assigned
-              to your account
-            </p>
-          </div>
-        </div>
-
-        {domains.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Globe className="w-14 h-14 text-muted-foreground/20 mx-auto mb-4" />
-            <p className="text-[14px] text-muted-foreground font-medium">
-              No domains assigned yet
-            </p>
-            <p className="text-[12px] text-muted-foreground/70 mt-1">
-              Contact your administrator to get a domain assigned
-            </p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {domains.map((domain) => (
-              <DomainCard key={domain.id} domain={domain} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Account Information */}
-      <Card className="p-6 bg-muted/30 border-border/50">
-        <h3 className="text-[14px] font-semibold text-foreground mb-4">
-          Account Information
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[12px]">
-          <div>
-            <span className="text-muted-foreground">Account Created</span>
-            <p className="text-foreground font-medium mt-1">
-              {new Date(agent.created_at).toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Last Updated</span>
-            <p className="text-foreground font-medium mt-1">
-              {new Date(agent.updated_at).toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Account Status</span>
-            <p className="text-foreground font-medium mt-1 capitalize">
-              {agent.status}
-            </p>
-          </div>
-          {/* <div>
-            <span className="text-muted-foreground">Invite Status</span>
-            <p className="text-foreground font-medium mt-1 capitalize">
-              {agent.invite_status}
-            </p>
-          </div> */}
-        </div>
-
-        {agent.kyc_document_s3_url && (
+      {/* ── Hero Banner ───────────────────────────────────────────────────── */}
+      <section
+        className="relative w-full overflow-hidden rounded-2xl"
+        style={{ ...heroStyle, minHeight: "460px" }}
+      >
+        {/* Overlays */}
+        {hasBgImage ? (
           <>
-            <Separator className="my-4" />
-            <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-[12px] text-muted-foreground">
-                  KYC Document
-                </p>
-                <p className="text-[13px] text-foreground font-medium mt-0.5">
-                  Document uploaded and available
-                </p>
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/50 to-black/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          </>
+        ) : (
+          <>
+            <div
+              className="absolute inset-0 opacity-35"
+              style={{
+                background: `radial-gradient(ellipse 70% 60% at 20% 40%, rgba(99,102,241,0.45) 0%, transparent 70%)`,
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                background: `radial-gradient(ellipse 50% 50% at 80% 60%, rgba(16,185,129,0.3) 0%, transparent 70%)`,
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-[0.035]"
+              style={{
+                backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
+                backgroundSize: "48px 48px",
+              }}
+            />
           </>
         )}
-      </Card>
+
+        {/* Content — vertically distributed in the tall hero */}
+        <div
+          className="relative z-10 flex flex-col justify-between px-8 md:px-12 lg:px-16 py-12 md:py-16"
+          style={{ minHeight: "460px" }}
+        >
+          {/* Top row: greeting + agent card */}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+
+            {/* Left: greeting + name */}
+            <div className="flex-1 min-w-0">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em] text-white/45 mb-3">
+                Welcome to Agent Dashboard
+              </p>
+              <h1
+                className="text-[48px] sm:text-[60px] lg:text-[68px] font-black text-white leading-none tracking-tight mb-5"
+                style={{ fontVariationSettings: "'wght' 900" }}
+              >
+                {agent ? getFirstName(agent.full_name) : "—"}
+                <span className="text-white/15">.</span>
+              </h1>
+              {settings.hero_subtitle && (
+                <p className="text-[14px] sm:text-[15px] text-white/50 max-w-md leading-relaxed">
+                  {settings.hero_subtitle}
+                </p>
+              )}
+            </div>
+
+            {/* Right: Agent identity card */}
+            {agent && (
+              <div className="shrink-0">
+                <div className="flex items-center gap-4 bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] rounded-2xl px-5 py-4 shadow-2xl">
+                  {agent.profile_photo_s3_url ? (
+                    <img
+                      src={agent.profile_photo_s3_url}
+                      alt={agent.full_name}
+                      className="w-16 h-16 rounded-xl object-cover border-2 border-white/20 shrink-0 shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-white/15 flex items-center justify-center shrink-0 border-2 border-white/10 shadow-lg">
+                      <span className="text-[20px] font-bold text-white">{getInitials(agent.full_name)}</span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold text-white leading-snug truncate max-w-[180px]">
+                      {agent.full_name}
+                    </p>
+                    {agent.agency_name && (
+                      <p className="text-[11.5px] text-white/55 mt-1 flex items-center gap-1.5 truncate">
+                        <Building2 className="w-3 h-3 shrink-0 text-white/40" />
+                        {agent.agency_name}
+                      </p>
+                    )}
+                    {agent.city && (
+                      <p className="text-[11.5px] text-white/55 mt-0.5 flex items-center gap-1.5 truncate">
+                        <MapPin className="w-3 h-3 shrink-0 text-white/40" />
+                        {agent.city}
+                      </p>
+                    )}
+                    <span
+                      className={`inline-flex mt-2 items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase ${
+                        agent.status === "approved"
+                          ? "bg-emerald-400/15 text-emerald-300 border border-emerald-400/25"
+                          : "bg-amber-400/15 text-amber-300 border border-amber-400/25"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          agent.status === "approved" ? "bg-emerald-400" : "bg-amber-400"
+                        }`}
+                      />
+                      {agent.status === "approved" ? "Active" : agent.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom row: quick-action pill buttons */}
+          {/* <div className="flex flex-wrap items-center gap-2 mt-10">
+            {QUICK_LINKS.map(({ label, icon: Icon, href }) => (
+              <a
+                key={label}
+                href={href}
+                className="group flex items-center gap-2 bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.12] hover:border-white/[0.22] backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-200"
+              >
+                <Icon className="w-3.5 h-3.5 text-white/50 group-hover:text-white/80 transition-colors" />
+                <span className="text-[12px] font-medium text-white/60 group-hover:text-white/90 transition-colors">
+                  {label}
+                </span>
+                <ChevronRight className="w-3 h-3 text-white/30 group-hover:text-white/60 transition-colors" />
+              </a>
+            ))}
+          </div> */}
+        </div>
+      </section>
+
+      {/* ── Main content area ─────────────────────────────────────────────── */}
+      <section className="flex-1 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card className="lg:col-span-2 p-5 border border-border bg-card min-h-[160px] flex items-center justify-center">
+            <p className="text-[13px] text-muted-foreground/50">Recent Listings will appear here</p>
+          </Card>
+          <Card className="p-5 border border-border bg-card min-h-[160px] flex items-center justify-center">
+            <p className="text-[13px] text-muted-foreground/50">Lead Activity</p>
+          </Card>
+        </div>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <footer className="mt-auto border-t border-border pt-5 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p className="text-[12px] text-muted-foreground">{footerText}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {(settings.footer_links || []).map((link, i) => (
+              <a
+                key={i}
+                href={link.url || "#"}
+                target={link.url && link.url !== "#" ? "_blank" : undefined}
+                rel="noopener noreferrer"
+                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                {link.label}
+                {link.url && link.url !== "#" && <ExternalLink className="w-3 h-3" />}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {settings.footer_show_contact && agent && (
+          <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2.5">
+            {agent.email && (
+              <a
+                href={`mailto:${agent.email}`}
+                className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="w-3 h-3" />
+                {agent.email}
+              </a>
+            )}
+            {agent.mobile_number && (
+              <a
+                href={`tel:${agent.mobile_number}`}
+                className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Phone className="w-3 h-3" />
+                {agent.mobile_number}
+              </a>
+            )}
+          </div>
+        )}
+      </footer>
     </div>
   );
 }

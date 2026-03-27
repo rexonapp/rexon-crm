@@ -7,6 +7,9 @@ import {
   ChevronLeft, ChevronRight, Trash2, Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -123,7 +126,7 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-function Req() { return <span className="text-muted-foreground ml-0.5">*</span>; }
+function Req() { return <span className="text-muted-foreground text-red-500 ml-0.5">*</span>; }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -428,7 +431,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
               </CardHeader>
               <CardContent className="px-5 pt-5 pb-5 space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="title" className="text-[12.5px] font-medium text-muted-foreground">Property Title<Req /></Label>
+                  <Label htmlFor="title" className="text-[12.5px] font-medium text-muted-foreground">Property Title<Req  /></Label>
                   <Input id="title" value={formData.title}
                     onChange={e => handleFieldChange('title', e.target.value)}
                     onBlur={() => handleFieldBlur('title')}
@@ -570,16 +573,64 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                     {touchedFields.has('city') && <FieldError message={fieldErrors.city} />}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="state" className="text-[12.5px] font-medium text-muted-foreground">State<Req /></Label>
-                    <Select value={formData.state} onValueChange={v => handleFieldChange('state', v)}>
-                      <SelectTrigger id="state" className={cn('h-9 text-[13px]', touchedFields.has('state') && fieldErrors.state && 'border-destructive')}>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>{INDIAN_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                    </Select>
-                    {touchedFields.has('state') && <FieldError message={fieldErrors.state} />}
-                  </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="state" className="text-[12.5px] font-medium text-muted-foreground">State<Req /></Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="state"
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          'h-9 w-full justify-between font-normal text-[13px]',
+                          !formData.state && 'text-muted-foreground',
+                          touchedFields.has('state') && fieldErrors.state && 'border-destructive'
+                        )}
+                      >
+                        {formData.state || 'Select state'}
+                        <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="p-0"
+                      align="start"
+                      style={{ width: 'var(--radix-popover-trigger-width)' }}
+                    >
+                      <Command>
+                        <CommandInput placeholder="Search state..." className="text-[13px]" />
+                        <CommandList>
+                          <CommandEmpty className="text-[13px] py-3 text-center text-muted-foreground">
+                            No state found.
+                          </CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {INDIAN_STATES.map(state => (
+                              <CommandItem
+                                key={state}
+                                value={state}
+                                className="text-[13px]"
+                                onSelect={val => {
+                                  const matched = INDIAN_STATES.find(
+                                    s => s.toLowerCase() === val.toLowerCase()
+                                  ) ?? val;
+                                  handleFieldChange('state', matched);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-3.5 w-3.5',
+                                    formData.state === state ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {state}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {touchedFields.has('state') && <FieldError message={fieldErrors.state} />}
+                </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -724,7 +775,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                 <CardHeader className="pb-4 border-b border-border px-5 pt-5">
                   <div className="flex items-center justify-between">
                     <SectionHeader icon={ImageIcon} title="Property Images" />
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/60">Required</span>
+                    <span className="text-[11px] font-semibold text-red-500 uppercase tracking-[0.06em] text-muted-foreground/60">Required</span>
                   </div>
                   <CardDescription className="text-[12px] mt-0.5">{totalImageCount}/{MAX_IMAGES} images uploaded</CardDescription>
                 </CardHeader>

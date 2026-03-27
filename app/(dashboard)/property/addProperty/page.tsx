@@ -2,6 +2,10 @@
 import { useState } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, MapPin, Building2, User, IndianRupee, FileText, Image as ImageIcon, Video, Plus, Eye, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,7 +130,7 @@ export default function WarehouseUploadForm() {
     images: [],
     videos: [],
   });
-  
+
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -138,65 +142,52 @@ export default function WarehouseUploadForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const router = useRouter();
+
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
       case 'title':
-        if (!value || value.trim() === '') return 'Property title is requiblack';
+        if (!value || value.trim() === '') return 'Property title is required';
         if (value.length < 5) return 'Title must be at least 5 characters';
         break;
-
       case 'propertyType':
-        if (!value) return 'Property type is requiblack';
+        if (!value) return 'Property type is required';
         break;
-
       case 'totalArea':
-        if (!value || value === '') return 'Total area is requiblack';
+        if (!value || value === '') return 'Total area is required';
         if (parseFloat(value) <= 0) return 'Total area must be greater than 0';
         break;
-
       case 'availableFrom':
-        if (!value) return 'Available from date is requiblack';
+        if (!value) return 'Available from date is required';
         break;
-
       case 'pricePerSqFt':
-        if (!value || value === '') return 'Price per sq.ft is requiblack';
+        if (!value || value === '') return 'Price per sq.ft is required';
         if (parseFloat(value) <= 0) return 'Price must be greater than 0';
         break;
-
       case 'city':
-        if (!value || value.trim() === '') return 'City is requiblack';
+        if (!value || value.trim() === '') return 'City is required';
         break;
-
       case 'state':
-        if (!value) return 'State is requiblack';
+        if (!value) return 'State is required';
         break;
-
       case 'pincode':
         if (value) {
-          if (!/^\d+$/.test(value)) {
-            return 'Pincode must contain only numbers';
-          }
-          if (value.length !== 6) {
-            return 'Pincode must be exactly 6 digits';
-          }
+          if (!/^\d+$/.test(value)) return 'Pincode must contain only numbers';
+          if (value.length !== 6) return 'Pincode must be exactly 6 digits';
         }
         break;
-
       case 'contactPersonPhone':
         if (value && !/^[6-9]\d{9}$/.test(value.replace(/\s/g, ''))) {
           return 'Enter a valid 10-digit mobile number starting with 6-9';
         }
         break;
-
       case 'contactPersonEmail':
         if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
           return 'Enter a valid email address';
         }
         break;
-
       case 'images':
         if (!formData.images || formData.images.length === 0) {
-          return 'At least one property image is requiblack';
+          return 'At least one property image is required';
         }
         break;
     }
@@ -216,10 +207,8 @@ export default function WarehouseUploadForm() {
     setFieldErrors(prev => ({ ...prev, [name]: error }));
   };
 
-  // ─── Address change: also trigger map open hint ───────────────────────────────
   const handleAddressChange = (value: string) => {
     handleFieldChange('address', value);
-    // Auto-open map when user starts typing an address (only open, never close)
     if (value.length >= 5 && !showMap) {
       setShowMap(true);
     }
@@ -242,8 +231,10 @@ export default function WarehouseUploadForm() {
     setTouchedFields(prev => new Set(prev).add('images'));
 
     if (formData.images.length + files.length > MAX_IMAGES) {
-      const error = `Maximum ${MAX_IMAGES} images allowed. You can add ${MAX_IMAGES - formData.images.length} more.`;
-      setFieldErrors(prev => ({ ...prev, images: error }));
+      setFieldErrors(prev => ({
+        ...prev,
+        images: `Maximum ${MAX_IMAGES} images allowed. You can add ${MAX_IMAGES - formData.images.length} more.`
+      }));
       return;
     }
 
@@ -251,15 +242,11 @@ export default function WarehouseUploadForm() {
     const imageFiles = files.filter(file => allowedTypes.includes(file.type.toLowerCase()));
 
     if (imageFiles.length !== files.length) {
-      setFieldErrors(prev => ({
-        ...prev,
-        images: 'Only image files are allowed (JPG, JPEG, PNG, WEBP, GIF)'
-      }));
+      setFieldErrors(prev => ({ ...prev, images: 'Only image files are allowed (JPG, JPEG, PNG, WEBP, GIF)' }));
       return;
     }
 
-    const oversized = imageFiles.filter(file => file.size > MAX_IMAGE_SIZE);
-    if (oversized.length > 0) {
+    if (imageFiles.some(file => file.size > MAX_IMAGE_SIZE)) {
       setFieldErrors(prev => ({ ...prev, images: 'Some images exceed 5MB limit' }));
       return;
     }
@@ -267,10 +254,7 @@ export default function WarehouseUploadForm() {
     const previews = imageFiles.map(file => URL.createObjectURL(file));
     setImagePreviews(prev => [...prev, ...previews]);
     setFormData(prev => ({ ...prev, images: [...prev.images, ...imageFiles] }));
-
-    if ([...formData.images, ...imageFiles].length > 0) {
-      setFieldErrors(prev => ({ ...prev, images: undefined }));
-    }
+    setFieldErrors(prev => ({ ...prev, images: undefined }));
   };
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,8 +265,10 @@ export default function WarehouseUploadForm() {
     setTouchedFields(prev => new Set(prev).add('videos'));
 
     if (formData.videos.length + files.length > MAX_VIDEOS) {
-      const error = `Maximum ${MAX_VIDEOS} videos allowed. You can add ${MAX_VIDEOS - formData.videos.length} more.`;
-      setFieldErrors(prev => ({ ...prev, videos: error }));
+      setFieldErrors(prev => ({
+        ...prev,
+        videos: `Maximum ${MAX_VIDEOS} videos allowed. You can add ${MAX_VIDEOS - formData.videos.length} more.`
+      }));
       return;
     }
 
@@ -293,8 +279,7 @@ export default function WarehouseUploadForm() {
       return;
     }
 
-    const oversized = videoFiles.filter(file => file.size > MAX_VIDEO_SIZE);
-    if (oversized.length > 0) {
+    if (videoFiles.some(file => file.size > MAX_VIDEO_SIZE)) {
       setFieldErrors(prev => ({ ...prev, videos: 'Some videos exceed 100MB limit' }));
       return;
     }
@@ -314,11 +299,10 @@ export default function WarehouseUploadForm() {
     setFormData(prev => ({ ...prev, images: updatedImages }));
     setImageToDelete(null);
     setTouchedFields(prev => new Set(prev).add('images'));
-    if (updatedImages.length === 0) {
-      setFieldErrors(prev => ({ ...prev, images: 'At least one property image is requiblack' }));
-    } else {
-      setFieldErrors(prev => ({ ...prev, images: undefined }));
-    }
+    setFieldErrors(prev => ({
+      ...prev,
+      images: updatedImages.length === 0 ? 'At least one property image is required' : undefined
+    }));
   };
 
   const removeVideo = (index: number) => {
@@ -332,17 +316,14 @@ export default function WarehouseUploadForm() {
     setShowImageGallery(true);
   };
 
-  const goToNextImage = () => setSelectedImageIndex((prev) => (prev + 1) % imagePreviews.length);
-  const goToPreviousImage = () => setSelectedImageIndex((prev) => (prev - 1 + imagePreviews.length) % imagePreviews.length);
+  const goToNextImage = () => setSelectedImageIndex(prev => (prev + 1) % imagePreviews.length);
+  const goToPreviousImage = () => setSelectedImageIndex(prev => (prev - 1 + imagePreviews.length) % imagePreviews.length);
 
   const validateForm = (): boolean => {
     const errors: FieldErrors = {};
-    const requiblackFields = [
-      'title', 'propertyType', 'totalArea', 'availableFrom',
-      'pricePerSqFt', 'address', 'city', 'state'
-    ];
+    const requiredFields = ['title', 'propertyType', 'totalArea', 'availableFrom', 'pricePerSqFt', 'address', 'city', 'state'];
 
-    requiblackFields.forEach(field => {
+    requiredFields.forEach(field => {
       const error = validateField(field, formData[field as keyof WarehouseFormData]);
       if (error) errors[field as keyof FieldErrors] = error;
     });
@@ -364,8 +345,7 @@ export default function WarehouseUploadForm() {
     if (imageError) errors.images = imageError;
 
     setFieldErrors(errors);
-    const allFields = new Set([...requiblackFields, 'pincode', 'contactPersonPhone', 'contactPersonEmail', 'images']);
-    setTouchedFields(allFields);
+    setTouchedFields(new Set([...requiredFields, 'pincode', 'contactPersonPhone', 'contactPersonEmail', 'images']));
 
     return Object.keys(errors).length === 0;
   };
@@ -376,8 +356,8 @@ export default function WarehouseUploadForm() {
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      toast.error('Please fill in all requiblack fields correctly');
-      const firstErrorField = document.querySelector('.border-black-500');
+      toast.error('Please fill in all required fields correctly');
+      const firstErrorField = document.querySelector('.border-red-500');
       if (firstErrorField) {
         firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -389,7 +369,7 @@ export default function WarehouseUploadForm() {
 
     try {
       const uploadFormData = new FormData();
-      
+
       Object.entries(formData).forEach(([key, value]) => {
         if (key === 'images') {
           formData.images.forEach(file => uploadFormData.append('images', file));
@@ -403,10 +383,7 @@ export default function WarehouseUploadForm() {
       });
 
       const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) return prev;
-          return prev + 10;
-        });
+        setUploadProgress(prev => prev >= 90 ? prev : prev + 10);
       }, 300);
 
       const response = await fetch('/api/upload', {
@@ -418,7 +395,6 @@ export default function WarehouseUploadForm() {
       setUploadProgress(100);
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || 'Upload failed');
 
       toast.success('Property listed successfully!', {
@@ -443,16 +419,30 @@ export default function WarehouseUploadForm() {
   const visibleImageCount = 3;
   const remainingImages = imagePreviews.length - visibleImageCount;
 
+  // Helper: error border class
+  const errBorder = (field: keyof FieldErrors) =>
+    touchedFields.has(field) && fieldErrors[field]
+      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+      : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500';
+
+  // Helper: inline error message
+  const ErrMsg = ({ field }: { field: keyof FieldErrors }) =>
+    touchedFields.has(field) && fieldErrors[field] ? (
+      <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
+        <AlertCircle className="h-4 w-4 shrink-0" />
+        {fieldErrors[field]}
+      </p>
+    ) : null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100  sm:py-10 lg:py-10 xl:py-10 py-2 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 sm:py-10 py-2 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center text-sm text-gray-500 mb-4">
-            <span>Home</span>
-            <span className="mx-2">/</span>
-            <span>My Listings</span>
-            <span className="mx-2">/</span>
+            <span>Home</span><span className="mx-2">/</span>
+            <span>My Listings</span><span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">Add New Property</span>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Add New Property</h1>
@@ -460,12 +450,12 @@ export default function WarehouseUploadForm() {
         </div>
 
         {uploading && (
-          <Card className="mb-6 border-black-200 bg-black-50">
+          <Card className="mb-6 border-blue-200 bg-blue-50">
             <CardContent className="pt-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium text-black-900">Uploading property...</span>
-                  <span className="text-black-700">{uploadProgress}%</span>
+                  <span className="font-medium text-blue-900">Uploading property...</span>
+                  <span className="text-blue-700">{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
               </div>
@@ -474,20 +464,23 @@ export default function WarehouseUploadForm() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Forms */}
+
+          {/* ── Left Column ── */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Basic Information */}
             <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="">
+              <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-black-600 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Basic Information</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
+
+                {/* Title */}
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-sm font-semibold">
                     Property Title <span className="text-red-500">*</span>
@@ -495,36 +488,22 @@ export default function WarehouseUploadForm() {
                   <Input
                     id="title"
                     value={formData.title}
-                    onChange={(e) => handleFieldChange('title', e.target.value)}
+                    onChange={e => handleFieldChange('title', e.target.value)}
                     onBlur={() => handleFieldBlur('title')}
                     placeholder="e.g., Green Valley Warehousing Complex"
-                    className={`border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                      touchedFields.has('title') && fieldErrors.title ? 'border-black-500' : ''
-                    }`}
+                    className={errBorder('title')}
                   />
-                  {touchedFields.has('title') && fieldErrors.title && (
-                    <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {fieldErrors.title}
-                    </p>
-                  )}
+                  <ErrMsg field="title" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Property Type */}
                   <div className="space-y-2 w-full">
                     <Label htmlFor="propertyType" className="text-sm font-semibold">
                       Property Type <span className="text-red-500">*</span>
                     </Label>
-                    <Select
-                      value={formData.propertyType}
-                      onValueChange={(value) => handleFieldChange('propertyType', value)}
-                    >
-                      <SelectTrigger
-                        id="propertyType"
-                        className={`w-full h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                          touchedFields.has('propertyType') && fieldErrors.propertyType ? 'border-black-500' : ''
-                        }`}
-                      >
+                    <Select value={formData.propertyType} onValueChange={v => handleFieldChange('propertyType', v)}>
+                      <SelectTrigger id="propertyType" className={`w-full h-11 ${errBorder('propertyType')}`}>
                         <SelectValue placeholder="Select type..." />
                       </SelectTrigger>
                       <SelectContent className="max-w-[calc(100vw-2rem)]">
@@ -533,14 +512,10 @@ export default function WarehouseUploadForm() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {touchedFields.has('propertyType') && fieldErrors.propertyType && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.propertyType}
-                      </p>
-                    )}
+                    <ErrMsg field="propertyType" />
                   </div>
 
+                  {/* Total Area */}
                   <div className="space-y-2">
                     <Label htmlFor="totalArea" className="text-sm font-semibold">
                       Total Area <span className="text-red-500">*</span>
@@ -549,20 +524,15 @@ export default function WarehouseUploadForm() {
                       <Input
                         id="totalArea"
                         type="number"
-                        min='0'
+                        min="0"
                         value={formData.totalArea}
-                        onChange={(e) => handleFieldChange('totalArea', e.target.value)}
+                        onChange={e => handleFieldChange('totalArea', e.target.value)}
                         onBlur={() => handleFieldBlur('totalArea')}
                         placeholder="0"
-                        className={`flex-1 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                          touchedFields.has('totalArea') && fieldErrors.totalArea ? 'border-black-500' : ''
-                        }`}
+                        className={`flex-1 ${errBorder('totalArea')}`}
                       />
-                      <Select
-                        value={formData.sizeUnit}
-                        onValueChange={(value: 'sqft' | 'sqm') => setFormData({ ...formData, sizeUnit: value })}
-                      >
-                        <SelectTrigger className="w-28 h-11 border-gray-300 focus:border-black-500 focus:ring-black-500">
+                      <Select value={formData.sizeUnit} onValueChange={(v: 'sqft' | 'sqm') => setFormData({ ...formData, sizeUnit: v })}>
+                        <SelectTrigger className="w-28 h-11 border-gray-300">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -571,24 +541,20 @@ export default function WarehouseUploadForm() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {touchedFields.has('totalArea') && fieldErrors.totalArea && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.totalArea}
-                      </p>
-                    )}
+                    <ErrMsg field="totalArea" />
                   </div>
                 </div>
 
+                {/* Description */}
                 <div className="space-y-2">
                   <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
                     placeholder="Provide a detailed description of your property..."
-                    className="border-gray-300 focus:border-black-500 focus:ring-black-500 resize-none"
+                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 resize-none"
                   />
                 </div>
               </CardContent>
@@ -596,9 +562,9 @@ export default function WarehouseUploadForm() {
 
             {/* Availability & Pricing */}
             <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="">
+              <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-black-600 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
                     <IndianRupee className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Availability & Pricing</CardTitle>
@@ -606,6 +572,7 @@ export default function WarehouseUploadForm() {
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Available From */}
                   <div className="space-y-2">
                     <Label htmlFor="availableFrom" className="text-sm font-semibold">
                       Available From <span className="text-red-500">*</span>
@@ -615,32 +582,23 @@ export default function WarehouseUploadForm() {
                       type="date"
                       min={today}
                       value={formData.availableFrom}
-                      onChange={(e) => handleFieldChange('availableFrom', e.target.value)}
+                      onChange={e => handleFieldChange('availableFrom', e.target.value)}
                       onBlur={() => handleFieldBlur('availableFrom')}
-                      className={`h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                        touchedFields.has('availableFrom') && fieldErrors.availableFrom ? 'border-black-500' : ''
-                      }`}
+                      className={`h-11 w-full ${errBorder('availableFrom')}`}
                     />
-                    {touchedFields.has('availableFrom') && fieldErrors.availableFrom && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.availableFrom}
-                      </p>
-                    )}
+                    <ErrMsg field="availableFrom" />
                   </div>
 
+                  {/* Listing Type */}
                   <div className="space-y-2 w-full">
                     <Label htmlFor="listingType" className="text-sm font-semibold">
                       Listing Type <span className="text-red-500">*</span>
                     </Label>
-                    <Select
-                      value={formData.listingType}
-                      onValueChange={(value: 'sale' | 'rent') => setFormData({ ...formData, listingType: value })}
-                    >
-                      <SelectTrigger id="listingType" className="h-11 w-full border-gray-300 focus:border-black-500 focus:ring-black-500">
+                    <Select value={formData.listingType} onValueChange={(v: 'sale' | 'rent') => setFormData({ ...formData, listingType: v })}>
+                      <SelectTrigger id="listingType" className="h-11 w-full border-gray-300">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className='max-w-[calc(100vw-2rem)]'>
+                      <SelectContent className="max-w-[calc(100vw-2rem)]">
                         <SelectItem value="rent">For Rent</SelectItem>
                         <SelectItem value="sale">For Sale</SelectItem>
                         <SelectItem value="lease">For Lease</SelectItem>
@@ -649,44 +607,39 @@ export default function WarehouseUploadForm() {
                   </div>
                 </div>
 
+                {/* Price per Sq.ft */}
                 <div className="space-y-2">
                   <Label htmlFor="pricePerSqFt" className="text-sm font-semibold">
                     Price per Sq.ft <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
                     <Input
                       id="pricePerSqFt"
                       type="number"
-                      min={'0'}
+                      min="0"
                       value={formData.pricePerSqFt}
-                      onChange={(e) => handleFieldChange('pricePerSqFt', e.target.value)}
+                      onChange={e => handleFieldChange('pricePerSqFt', e.target.value)}
                       onBlur={() => handleFieldBlur('pricePerSqFt')}
-                      className={`pl-8 h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                        touchedFields.has('pricePerSqFt') && fieldErrors.pricePerSqFt ? 'border-black-500' : ''
-                      }`}
+                      className={`pl-8 h-11 ${errBorder('pricePerSqFt')}`}
                       placeholder="0.00"
                     />
                   </div>
-                  {touchedFields.has('pricePerSqFt') && fieldErrors.pricePerSqFt && (
-                    <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {fieldErrors.pricePerSqFt}
-                    </p>
-                  )}
+                  <ErrMsg field="pricePerSqFt" />
                 </div>
 
+                {/* Total Price */}
                 <div className="space-y-2">
                   <Label htmlFor="totalPrice" className="text-sm font-semibold">Total Price (Optional)</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
                     <Input
                       id="totalPrice"
                       type="number"
                       min={0}
                       value={formData.totalPrice}
-                      onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })}
-                      className="pl-8 h-11 border-gray-300 focus:border-black-500 focus:ring-black-500"
+                      onChange={e => setFormData({ ...formData, totalPrice: e.target.value })}
+                      className="pl-8 h-11 border-gray-300 focus:border-gray-500"
                       placeholder="0.00"
                     />
                   </div>
@@ -696,16 +649,17 @@ export default function WarehouseUploadForm() {
 
             {/* Location Details */}
             <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="">
+              <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-black-600 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
                     <MapPin className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Location Details</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
-                {/* Address field — triggers auto-geocoding in MapSelector */}
+
+                {/* Address */}
                 <div className="space-y-2">
                   <Label htmlFor="address" className="text-sm font-semibold">
                     Address <span className="text-red-500">*</span>
@@ -713,23 +667,17 @@ export default function WarehouseUploadForm() {
                   <Textarea
                     id="address"
                     value={formData.address}
-                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onChange={e => handleAddressChange(e.target.value)}
                     onBlur={() => handleFieldBlur('address')}
                     placeholder="Enter full street address"
-                    className={`border-gray-300 focus:border-black-500 focus:ring-black-500 resize-none ${
-                      touchedFields.has('address') && fieldErrors.address ? 'border-black-500' : ''
-                    }`}
                     rows={2}
+                    className={`resize-none ${errBorder('address')}`}
                   />
-                  {touchedFields.has('address') && fieldErrors.address && (
-                    <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {fieldErrors.address}
-                    </p>
-                  )}
+                  <ErrMsg field="address" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* City */}
                   <div className="space-y-2">
                     <Label htmlFor="city" className="text-sm font-semibold">
                       City <span className="text-red-500">*</span>
@@ -737,84 +685,104 @@ export default function WarehouseUploadForm() {
                     <Input
                       id="city"
                       value={formData.city}
-                      onChange={(e) => handleFieldChange('city', e.target.value)}
+                      onChange={e => handleFieldChange('city', e.target.value)}
                       onBlur={() => handleFieldBlur('city')}
                       placeholder="e.g., Mumbai"
-                      className={`h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                        touchedFields.has('city') && fieldErrors.city ? 'border-black-500' : ''
-                      }`}
+                      className={`h-11 ${errBorder('city')}`}
                     />
-                    {touchedFields.has('city') && fieldErrors.city && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.city}
-                      </p>
-                    )}
+                    <ErrMsg field="city" />
                   </div>
 
-                  <div className="space-y-2 w-full">
-                    <Label htmlFor="state" className="text-sm font-semibold">
-                      State <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={formData.state}
-                      onValueChange={(value) => handleFieldChange('state', value)}
-                    >
-                      <SelectTrigger
+                  
+                <div className="space-y-2 w-full">
+                  <Label htmlFor="state" className="text-sm font-semibold">
+                    State <span className="text-red-500">*</span>
+                  </Label>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
                         id="state"
-                        className={`h-11 w-full border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                          touchedFields.has('state') && fieldErrors.state ? 'border-black-500' : ''
-                        }`}
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          'h-11 w-full justify-between font-normal',
+                          !formData.state && 'text-muted-foreground',
+                          touchedFields.has('state') && fieldErrors.state
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500'
+                        )}
                       >
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent className='max-w-[calc(100vw-2rem)]'>
-                        {INDIAN_STATES.map(state => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {touchedFields.has('state') && fieldErrors.state && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.state}
-                      </p>
-                    )}
-                  </div>
+                        {formData.state || 'Select state'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      className="p-0"
+                      align="start"
+                      style={{ width: 'var(--radix-popover-trigger-width)' }}
+                    >
+                      <Command>
+                        <CommandInput placeholder="Search state..." />
+                        <CommandList>
+                          <CommandEmpty>No state found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {INDIAN_STATES.map(state => (
+                              <CommandItem
+                                key={state}
+                                value={state}
+                                onSelect={val => {
+                                  const matched =
+                                    INDIAN_STATES.find(
+                                      s => s.toLowerCase() === val.toLowerCase()
+                                    ) ?? val;
+                                  handleFieldChange('state', matched);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    formData.state === state ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {state}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
+                  <ErrMsg field="state" />
+                </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Pincode */}
                   <div className="space-y-2">
                     <Label htmlFor="pincode" className="text-sm font-semibold">Pincode</Label>
                     <Input
                       id="pincode"
                       value={formData.pincode}
-                      onChange={(e) => handleFieldChange('pincode', e.target.value)}
+                      onChange={e => handleFieldChange('pincode', e.target.value)}
                       onBlur={() => handleFieldBlur('pincode')}
                       placeholder="400001"
                       maxLength={6}
-                      className={`h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                        touchedFields.has('pincode') && fieldErrors.pincode ? 'border-black-500' : ''
-                      }`}
+                      className={`h-11 ${errBorder('pincode')}`}
                     />
-                    {touchedFields.has('pincode') && fieldErrors.pincode && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.pincode}
-                      </p>
-                    )}
+                    <ErrMsg field="pincode" />
                   </div>
 
+                  {/* Road Connectivity */}
                   <div className="space-y-2 w-full">
                     <Label htmlFor="roadConnectivity" className="text-sm font-semibold">Road Connectivity</Label>
-                    <Select
-                      value={formData.roadConnectivity}
-                      onValueChange={(value) => setFormData({ ...formData, roadConnectivity: value })}
-                    >
-                      <SelectTrigger id="roadConnectivity" className="h-11 w-full border-gray-300 focus:border-black-500 focus:ring-black-500">
+                    <Select value={formData.roadConnectivity} onValueChange={v => setFormData({ ...formData, roadConnectivity: v })}>
+                      <SelectTrigger id="roadConnectivity" className="h-11 w-full border-gray-300">
                         <SelectValue placeholder="Select road type..." />
                       </SelectTrigger>
-                      <SelectContent className='max-w-[calc(100vw-2rem)]'>
+                      <SelectContent side="bottom" align="start" className="max-w-[calc(100vw-2rem)]">
                         {ROAD_CONNECTIVITY.map(road => (
                           <SelectItem key={road} value={road}>{road}</SelectItem>
                         ))}
@@ -823,49 +791,38 @@ export default function WarehouseUploadForm() {
                   </div>
                 </div>
 
-                {/* Lat/Lng fields — auto-populated by geocoding, editable manually */}
+                {/* Lat / Lng */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="latitude" className="text-sm font-semibold">Latitude</Label>
                     <Input
                       id="latitude"
                       value={formData.latitude}
-                      onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                      onChange={e => setFormData({ ...formData, latitude: e.target.value })}
                       placeholder="19.0760"
-                      className="h-11 border-gray-300 focus:border-black-500 focus:ring-black-500"
+                      className="h-11 border-gray-300 focus:border-gray-500"
                     />
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="longitude" className="text-sm font-semibold">Longitude</Label>
                     <Input
                       id="longitude"
                       value={formData.longitude}
-                      onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                      onChange={e => setFormData({ ...formData, longitude: e.target.value })}
                       placeholder="72.8777"
-                      className="h-11 border-gray-300 focus:border-black-500 focus:ring-black-500"
+                      className="h-11 border-gray-300 focus:border-gray-500"
                     />
                   </div>
                 </div>
 
-                {/* Map toggle button */}
+                {/* Map toggle */}
                 <div className="pt-2">
-                  <Button
-                    type="button"
-                    onClick={() => setShowMap(!showMap)}
-                    className="bg-black hover:bg-black-700 h-11"
-                  >
+                  <Button type="button" onClick={() => setShowMap(!showMap)} className="bg-black hover:bg-gray-800 h-11">
                     <MapPin className="h-4 w-4 mr-2" />
                     {showMap ? 'Hide Map' : 'Select Location on Map'}
                   </Button>
-
                   {showMap && (
                     <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                      {/* 
-                        MapSelector now receives address, city, state so it can
-                        auto-geocode whenever these change (debounced 800 ms).
-                        It still supports click-to-pin and drag-to-adjust.
-                      */}
                       <MapSelector
                         latitude={formData.latitude}
                         longitude={formData.longitude}
@@ -882,10 +839,10 @@ export default function WarehouseUploadForm() {
 
             {/* Features & Amenities */}
             <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="">
+              <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-black-600 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
                       <Building2 className="h-5 w-5 text-white" />
                     </div>
                     <CardTitle>Features & Amenities</CardTitle>
@@ -897,7 +854,7 @@ export default function WarehouseUploadForm() {
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Select Amenities</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                    {AMENITIES.map((amenity) => (
+                    {AMENITIES.map(amenity => (
                       <div key={amenity} className="flex items-center space-x-2 p-3 rounded-lg border border-gray-200 hover:border-black hover:bg-gray-50 transition-colors">
                         <Checkbox
                           id={amenity}
@@ -905,10 +862,7 @@ export default function WarehouseUploadForm() {
                           onCheckedChange={() => toggleAmenity(amenity)}
                           className="data-[state=checked]:bg-black data-[state=checked]:border-black"
                         />
-                        <Label
-                          htmlFor={amenity}
-                          className="text-sm font-medium leading-none cursor-pointer flex-1"
-                        >
+                        <Label htmlFor={amenity} className="text-sm font-medium leading-none cursor-pointer flex-1">
                           {amenity}
                         </Label>
                       </div>
@@ -918,11 +872,11 @@ export default function WarehouseUploadForm() {
               </CardContent>
             </Card>
 
-            {/* Contact Details */}
+            {/* Contact Information */}
             <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="">
+              <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-black-600 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
                     <User className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Contact Information</CardTitle>
@@ -935,31 +889,23 @@ export default function WarehouseUploadForm() {
                     <Input
                       id="contactName"
                       value={formData.contactPersonName}
-                      onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
+                      onChange={e => setFormData({ ...formData, contactPersonName: e.target.value })}
                       placeholder="Contact person name"
-                      className="h-11 border-gray-300 focus:border-black-500 focus:ring-black-500"
+                      className="h-11 border-gray-300 focus:border-gray-500"
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="contactEmail" className="text-sm font-semibold">Email Address</Label>
                     <Input
                       id="contactEmail"
                       type="email"
                       value={formData.contactPersonEmail}
-                      onChange={(e) => handleFieldChange('contactPersonEmail', e.target.value)}
+                      onChange={e => handleFieldChange('contactPersonEmail', e.target.value)}
                       onBlur={() => handleFieldBlur('contactPersonEmail')}
                       placeholder="email@example.com"
-                      className={`h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                        touchedFields.has('contactPersonEmail') && fieldErrors.contactPersonEmail ? 'border-black-500' : ''
-                      }`}
+                      className={`h-11 ${errBorder('contactPersonEmail')}`}
                     />
-                    {touchedFields.has('contactPersonEmail') && fieldErrors.contactPersonEmail && (
-                      <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.contactPersonEmail}
-                      </p>
-                    )}
+                    <ErrMsg field="contactPersonEmail" />
                   </div>
                 </div>
 
@@ -968,75 +914,54 @@ export default function WarehouseUploadForm() {
                   <Input
                     id="contactPhone"
                     type="tel"
-                    pattern='[0-9]{10}'
+                    pattern="[0-9]{10}"
                     maxLength={10}
-                    minLength={10}
                     value={formData.contactPersonPhone}
-                    onChange={(e) => handleFieldChange('contactPersonPhone', e.target.value)}
+                    onChange={e => handleFieldChange('contactPersonPhone', e.target.value)}
                     onBlur={() => handleFieldBlur('contactPersonPhone')}
                     placeholder="+91 98765 43210"
-                    className={`h-11 border-gray-300 focus:border-black-500 focus:ring-black-500 ${
-                      touchedFields.has('contactPersonPhone') && fieldErrors.contactPersonPhone ? 'border-black-500' : ''
-                    }`}
+                    className={`h-11 ${errBorder('contactPersonPhone')}`}
                   />
-                  {touchedFields.has('contactPersonPhone') && fieldErrors.contactPersonPhone && (
-                    <p className="text-sm text-black-500 flex items-center gap-1 mt-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {fieldErrors.contactPersonPhone}
-                    </p>
-                  )}
+                  <ErrMsg field="contactPersonPhone" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column - Media & Summary */}
+          {/* ── Right Column ── */}
           <div className="lg:col-span-1">
             <div className="sticky top-6 space-y-6">
+
               {/* Property Images */}
               <Card className="shadow-md hover:shadow-lg transition-shadow">
-                <CardHeader className="">
+                <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <ImageIcon className="h-5 w-5 text-black-600 mr-2" />
+                      <ImageIcon className="h-5 w-5 text-gray-700 mr-2" />
                       <CardTitle className="text-lg">Property Images</CardTitle>
-                      <span className='text-red-600 mx-3'>*</span>
+                      <span className="text-red-600 mx-3">*</span>
                     </div>
                   </div>
-                  <CardDescription className="text-xs">
-                    Upload up to {MAX_IMAGES} images (Max 5MB each)
-                  </CardDescription>
+                  <CardDescription className="text-xs">Upload up to {MAX_IMAGES} images (Max 5MB each)</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   {imagePreviews.length === 0 ? (
                     <div>
                       <Label htmlFor="images" className="block w-full cursor-pointer">
-                        <div className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-black-500 hover:bg-black-50 transition-all ${
+                        <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
                           touchedFields.has('images') && fieldErrors.images
-                            ? 'border-black-500 bg-black-50'
-                            : 'border-gray-300'
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
                         }`}>
-                          <input
-                            id="images"
-                            type="file"
-                            multiple
-                            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                            onChange={handleImageChange}
-                            className="hidden"
-                          />
-                          <div className="w-16 h-16 bg-gradient-to-br from-black-100 to-black-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Upload className="h-8 w-8 text-black-600" />
+                          <input id="images" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleImageChange} className="hidden" />
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Upload className="h-8 w-8 text-gray-500" />
                           </div>
                           <p className="text-sm font-semibold text-gray-900 mb-1">Click to upload images</p>
                           <p className="text-xs text-gray-500">JPG, JPEG, PNG, WEBP, GIF up to 5MB</p>
                         </div>
                       </Label>
-                      {touchedFields.has('images') && fieldErrors.images && (
-                        <p className="text-sm text-black-500 flex items-center gap-1 mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          {fieldErrors.images}
-                        </p>
-                      )}
+                      <ErrMsg field="images" />
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -1046,18 +971,15 @@ export default function WarehouseUploadForm() {
                             <img
                               src={preview}
                               alt={`Preview ${index + 1}`}
-                              className="w-full h-full object-cover rounded-lg border-2 border-gray-200 group-hover:border-black-500 transition-all cursor-pointer"
+                              className="w-full h-full object-cover rounded-lg border-2 border-gray-200 group-hover:border-gray-500 transition-all cursor-pointer"
                               onClick={() => openGallery(index)}
                             />
                             <Button
                               type="button"
                               size="icon"
                               variant="destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                confirmDeleteImage(index);
-                              }}
-                              className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-black-500 hover:bg-black-600 shadow-lg"
+                              onClick={e => { e.stopPropagation(); confirmDeleteImage(index); }}
+                              className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 shadow-lg"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -1069,31 +991,24 @@ export default function WarehouseUploadForm() {
                             </div>
                           </div>
                         ))}
-                        
+
                         {remainingImages > 0 && (
-                          <div 
-                            className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg border-2 border-gray-300 flex items-center justify-center cursor-pointer hover:border-black-500 hover:from-black-50 hover:to-black-50 transition-all group"
+                          <div
+                            className="relative aspect-square bg-gray-100 rounded-lg border-2 border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-500 transition-all group"
                             onClick={() => setShowImageGallery(true)}
                           >
                             <div className="text-center">
-                              <p className="text-2xl font-bold text-gray-700 group-hover:text-black-600">+{remainingImages}</p>
-                              <p className="text-xs text-gray-500 group-hover:text-black-600">more</p>
+                              <p className="text-2xl font-bold text-gray-700 group-hover:text-gray-900">+{remainingImages}</p>
+                              <p className="text-xs text-gray-500">more</p>
                             </div>
                           </div>
                         )}
-                        
+
                         {formData.images.length < MAX_IMAGES && (
                           <Label htmlFor="images-add" className="block cursor-pointer">
-                            <div className="aspect-square bg-gradient-to-br from-black-50 to-black-50 rounded-lg border-2 border-dashed border-black-300 flex items-center justify-center hover:border-black-500 hover:bg-black-100 transition-all group">
-                              <input
-                                id="images-add"
-                                type="file"
-                                multiple
-                                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                                onChange={handleImageChange}
-                                className="hidden"
-                              />
-                              <Plus className="h-8 w-8 text-black-500 group-hover:text-black-600 group-hover:scale-110 transition-transform" />
+                            <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-gray-500 hover:bg-gray-100 transition-all group">
+                              <input id="images-add" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleImageChange} className="hidden" />
+                              <Plus className="h-8 w-8 text-gray-400 group-hover:text-gray-600 group-hover:scale-110 transition-transform" />
                             </div>
                           </Label>
                         )}
@@ -1101,22 +1016,11 @@ export default function WarehouseUploadForm() {
 
                       <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
                         <span className="font-medium">{formData.images.length} / {MAX_IMAGES} images</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowImageGallery(true)}
-                          className="text-black-600 hover:text-black-700 hover:bg-black-50 h-7"
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setShowImageGallery(true)} className="text-gray-600 hover:text-gray-800 h-7">
                           View All
                         </Button>
                       </div>
-                      {touchedFields.has('images') && fieldErrors.images && (
-                        <p className="text-sm text-black-500 flex items-center gap-1">
-                          <AlertCircle className="h-4 w-4" />
-                          {fieldErrors.images}
-                        </p>
-                      )}
+                      <ErrMsg field="images" />
                     </div>
                   )}
                 </CardContent>
@@ -1124,50 +1028,34 @@ export default function WarehouseUploadForm() {
 
               {/* Property Videos */}
               <Card className="shadow-md hover:shadow-lg transition-shadow">
-                <CardHeader className="">
+                <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <Video className="h-5 w-5 text-black-600 mr-2" />
+                      <Video className="h-5 w-5 text-gray-700 mr-2" />
                       <CardTitle className="text-lg">Property Videos</CardTitle>
                     </div>
                     <Badge variant="secondary" className="bg-gray-200">Optional</Badge>
                   </div>
-                  <CardDescription className="text-xs">
-                    Upload up to {MAX_VIDEOS} videos (Max 100MB each)
-                  </CardDescription>
+                  <CardDescription className="text-xs">Upload up to {MAX_VIDEOS} videos (Max 100MB each)</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   {formData.videos.length < MAX_VIDEOS && (
                     <div className="mb-4">
                       <Label htmlFor="videos" className="block w-full cursor-pointer">
-                        <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-black-500 hover:bg-black-50 transition-all ${
+                        <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
                           touchedFields.has('videos') && fieldErrors.videos
-                            ? 'border-black-500 bg-black-50'
-                            : 'border-gray-300'
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
                         }`}>
-                          <input
-                            id="videos"
-                            type="file"
-                            multiple
-                            accept="video/*"
-                            onChange={handleVideoChange}
-                            className="hidden"
-                          />
-                          <div className="w-12 h-12 bg-gradient-to-br from-black-100 to-black-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Video className="h-6 w-6 text-black-600" />
+                          <input id="videos" type="file" multiple accept="video/*" onChange={handleVideoChange} className="hidden" />
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Video className="h-6 w-6 text-gray-500" />
                           </div>
                           <p className="text-sm font-medium text-gray-900 mb-1">Click to upload</p>
-                          <p className="text-xs text-gray-500">
-                            {formData.videos.length}/{MAX_VIDEOS} videos
-                          </p>
+                          <p className="text-xs text-gray-500">{formData.videos.length}/{MAX_VIDEOS} videos</p>
                         </div>
                       </Label>
-                      {touchedFields.has('videos') && fieldErrors.videos && (
-                        <p className="text-sm text-black-500 flex items-center gap-1 mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          {fieldErrors.videos}
-                        </p>
-                      )}
+                      <ErrMsg field="videos" />
                     </div>
                   )}
 
@@ -1177,7 +1065,7 @@ export default function WarehouseUploadForm() {
                         <div key={index} className="relative group">
                           <video
                             src={preview}
-                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-black-500 transition-all"
+                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-gray-500 transition-all"
                             controls
                           />
                           <Button
@@ -1185,7 +1073,7 @@ export default function WarehouseUploadForm() {
                             size="icon"
                             variant="destructive"
                             onClick={() => removeVideo(index)}
-                            className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-black-500 hover:bg-black-600 shadow-lg"
+                            className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 shadow-lg"
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -1194,48 +1082,33 @@ export default function WarehouseUploadForm() {
                           </div>
                         </div>
                       ))}
-                      {touchedFields.has('videos') && fieldErrors.videos && (
-                        <p className="text-sm text-black-500 flex items-center gap-1 mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          {fieldErrors.videos}
-                        </p>
-                      )}
+                      <ErrMsg field="videos" />
                     </div>
                   )}
                 </CardContent>
               </Card>
 
               {/* Quick Summary */}
-              <Card className="shadow-md hover:shadow-lg transition-shadow border-black-100">
-                <CardHeader className="">
+              <Card className="shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader>
                   <CardTitle className="text-lg">Quick Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Property Type</span>
-                      <span className="text-sm font-semibold text-gray-900">
-                        {formData.propertyType || 'Not selected'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Total Area</span>
-                      <span className="text-sm font-semibold text-gray-900">
-                        {formData.totalArea ? `${formData.totalArea} ${formData.sizeUnit}` : 'Not set'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Media Files</span>
-                      <span className="text-sm font-semibold text-gray-900">
-                        {formData.images.length} images, {formData.videos.length} videos
-                      </span>
-                    </div>
+                    {[
+                      { label: 'Property Type', value: formData.propertyType || 'Not selected' },
+                      { label: 'Total Area', value: formData.totalArea ? `${formData.totalArea} ${formData.sizeUnit}` : 'Not set' },
+                      { label: 'Media Files', value: `${formData.images.length} images, ${formData.videos.length} videos` },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-sm text-gray-600">{label}</span>
+                        <span className="text-sm font-semibold text-gray-900">{value}</span>
+                      </div>
+                    ))}
                     <div className="flex items-center justify-between py-2">
                       <span className="text-sm text-gray-600">Location</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {formData.latitude && formData.longitude 
-                          ? '✓ Set' 
-                          : 'Not set'}
+                        {formData.latitude && formData.longitude ? '✓ Set' : 'Not set'}
                       </span>
                     </div>
                   </div>
@@ -1247,11 +1120,11 @@ export default function WarehouseUploadForm() {
                 <Button
                   onClick={handleSubmit}
                   disabled={uploading}
-                  className="w-full bg-black hover:from-black-700 hover:to-black-800 text-white py-6 text-base font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]"
+                  className="w-full bg-black hover:bg-gray-800 text-white py-6 text-base font-bold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
                 >
                   {uploading ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                       <span>Submitting...</span>
                     </>
                   ) : (
@@ -1261,11 +1134,10 @@ export default function WarehouseUploadForm() {
                     </>
                   )}
                 </Button>
-
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={()=>router.back()}
+                  onClick={() => router.back()}
                   disabled={uploading}
                   className="w-full py-6 text-base font-medium border-2 hover:bg-gray-50"
                 >
@@ -1277,15 +1149,13 @@ export default function WarehouseUploadForm() {
         </div>
       </div>
 
-      {/* Image Gallery Modal - View Only */}
+      {/* Image Gallery Modal */}
       <Dialog open={showImageGallery} onOpenChange={setShowImageGallery}>
         <DialogContent className="max-w-[95vw] sm:max-w-[85vw] md:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[95vh] p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-3 sm:px-4 md:px-6 pt-4 sm:pt-5 md:pt-6 pb-3 sm:pb-4 border-b">
+          <DialogHeader className="px-4 md:px-6 pt-5 md:pt-6 pb-4 border-b">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold truncate">
-                  Property Images
-                </DialogTitle>
+                <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold truncate">Property Images</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
                   {selectedImageIndex + 1} of {imagePreviews.length}
                 </DialogDescription>
@@ -1294,11 +1164,8 @@ export default function WarehouseUploadForm() {
           </DialogHeader>
 
           <div className="relative p-3 sm:p-4 md:p-6 overflow-y-auto">
-            <div className="group relative w-full bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl flex items-center justify-center">
-              <div 
-                className="w-full h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] flex items-center justify-center"
-                style={{ minHeight: '300px', maxHeight: '800px' }}
-              >
+            <div className="group relative w-full bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden shadow-2xl flex items-center justify-center">
+              <div className="w-full h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] flex items-center justify-center" style={{ minHeight: '300px', maxHeight: '800px' }}>
                 <img
                   src={imagePreviews[selectedImageIndex]}
                   alt={`Property ${selectedImageIndex + 1}`}
@@ -1308,27 +1175,15 @@ export default function WarehouseUploadForm() {
 
               {imagePreviews.length > 1 && (
                 <>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    onClick={goToPreviousImage}
-                    className="absolute left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-gray-200 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100"
-                  >
-                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-700" />
+                  <Button type="button" size="icon" variant="secondary" onClick={goToPreviousImage}
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-gray-200 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100">
+                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
                   </Button>
-
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    onClick={goToNextImage}
-                    className="absolute right-2 sm:right-3 md:right-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-gray-200 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100"
-                  >
-                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-700" />
+                  <Button type="button" size="icon" variant="secondary" onClick={goToNextImage}
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-gray-200 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100">
+                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
                   </Button>
-
-                  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-black/75 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium backdrop-blur-sm transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-black/75 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100">
                     {selectedImageIndex + 1} / {imagePreviews.length}
                   </div>
                 </>
@@ -1337,25 +1192,19 @@ export default function WarehouseUploadForm() {
 
             {imagePreviews.length > 1 && (
               <div className="mt-3 sm:mt-4 md:mt-6">
-                <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 px-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 px-1">
                   {imagePreviews.map((preview, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-md sm:rounded-lg overflow-hidden transition-all ${
+                      className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden transition-all ${
                         index === selectedImageIndex
-                          ? 'ring-2 sm:ring-4 ring-black-500 scale-105 shadow-lg'
-                          : 'ring-1 sm:ring-2 ring-gray-200 hover:ring-black-300 hover:scale-105'
+                          ? 'ring-4 ring-gray-800 scale-105 shadow-lg'
+                          : 'ring-2 ring-gray-200 hover:ring-gray-400 hover:scale-105'
                       }`}
                     >
-                      <img
-                        src={preview}
-                        alt={`Thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      {index === selectedImageIndex && (
-                        <div className="absolute inset-0 bg-black-500/20" />
-                      )}
+                      <img src={preview} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                      {index === selectedImageIndex && <div className="absolute inset-0 bg-gray-900/20" />}
                     </button>
                   ))}
                 </div>
@@ -1365,7 +1214,7 @@ export default function WarehouseUploadForm() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={imageToDelete !== null} onOpenChange={() => setImageToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1377,10 +1226,8 @@ export default function WarehouseUploadForm() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (imageToDelete !== null) removeImage(imageToDelete);
-              }}
-              className="bg-black-600 hover:bg-black-700"
+              onClick={() => { if (imageToDelete !== null) removeImage(imageToDelete); }}
+              className="bg-red-600 hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>

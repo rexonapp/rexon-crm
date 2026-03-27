@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import {
   Tooltip,
@@ -14,7 +14,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -85,14 +84,6 @@ function HelpCircleIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="9" r="5.5" />
-      <path d="M13.5 13.5l3.5 3.5" />
-    </svg>
-  );
-}
 function LogOutIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -144,23 +135,6 @@ function NavIconBtn({
     </Tooltip>
   );
 }
-
-
-// function SearchBar() {
-//   return (
-//     <div className="relative w-72">
-//       <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-//       <Input
-//         type="text"
-//         placeholder="Search contacts, deals…"
-//         className="pl-10 pr-16 h-9 text-[13.5px] bg-muted/50 border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70"
-//       />
-//       <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 items-center rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-sm">
-//         ⌘K
-//       </kbd>
-//     </div>
-//   );
-// }
 
 /* ─────────────────────────────────────────────
    NOTIFICATIONS
@@ -258,24 +232,41 @@ function getInitials(name: string): string {
 /* ─────────────────────────────────────────────
    TOP NAV
    ───────────────────────────────────────────── */
-   export default function TopNav({
-    onSignInClick,
-    onMenuClick,
-  }: {
-    onSignInClick?: () => void;
-    onMenuClick?: () => void;
-  }) {
+export default function TopNav({
+  onSignInClick,
+  onMenuClick,
+}: {
+  onSignInClick?: () => void;
+  onMenuClick?: () => void;
+}) {
   const pathname = usePathname();
   const { title, crumb } = getPageMeta(pathname);
   const [agent, setAgent] = useState<AgentData | null>(null);
 
+  // ✅ Extracted so the event listener can reference the same stable function
+  const fetchAgent = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.agent) setAgent(data.agent);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.agent) setAgent(data.agent);
-      })
-      .catch(() => {});
+    fetchAgent();
+  }, [fetchAgent]);
+
+  // ✅ Listen for photo updates dispatched by SettingsPage and update optimistically
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { profile_photo_s3_url } = (e as CustomEvent).detail as { profile_photo_s3_url: string };
+      setAgent((prev) => prev ? { ...prev, profile_photo_s3_url } : prev);
+    };
+    window.addEventListener("profilePhotoUpdated", handler);
+    return () => window.removeEventListener("profilePhotoUpdated", handler);
   }, []);
 
   const initials = agent ? getInitials(agent.full_name) : "–";
@@ -284,8 +275,7 @@ function getInitials(name: string): string {
     <TooltipProvider delayDuration={200}>
       <header className="fixed top-0 left-0 right-0 lg:left-64 h-[60px] bg-background/95 backdrop-blur-sm border-b border-border flex items-center px-4 md:px-6 z-30 gap-3 md:gap-5">
 
-
-        {/* Page Title + Breadcrumb */}
+        {/* Hamburger — mobile only */}
         <button
           onClick={onMenuClick}
           className="lg:hidden p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -306,13 +296,13 @@ function getInitials(name: string): string {
           </span>
         </div>
 
-        {/* Actions — unchanged, just hide some on mobile */}
+        {/* Actions */}
         <div className="flex items-center gap-1">
           <NotificationButton />
-          <Link href='/property/addProperty'>
-          <NavIconBtn tooltip="Quick add (N)" className="hidden sm:flex">
-            <PlusIcon className="w-[18px] h-[18px]" />
-          </NavIconBtn>
+          <Link href="/property/addProperty">
+            <NavIconBtn tooltip="Quick add (N)" className="hidden sm:flex">
+              <PlusIcon className="w-[18px] h-[18px]" />
+            </NavIconBtn>
           </Link>
           <NavIconBtn tooltip="Help & docs" className="hidden sm:flex">
             <HelpCircleIcon className="w-[18px] h-[18px]" />
@@ -320,7 +310,7 @@ function getInitials(name: string): string {
 
           <Separator orientation="vertical" className="h-5 mx-2 hidden sm:block" />
 
-          {/* Agent identity */}
+          {/* ✅ Agent identity — photo updates immediately via event */}
           <div className="flex items-center gap-2.5 mr-1">
             {agent?.profile_photo_s3_url ? (
               <img
