@@ -77,11 +77,11 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
     const files: ParsedFile[] = [];
     const errors: string[] = [];
 
-    bb.on('field', (name, value) => {
+    bb.on('field', (name: any, value: any) => {
       fields[name] = value;
     });
 
-    bb.on('file', (fieldname, fileStream, info) => {
+    bb.on('file', (fieldname: any, fileStream: any, info: any) => {
       const { filename, mimeType } = info;
       const chunks: Buffer[] = [];
       let size = 0;
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     const totalPrice               = fields['totalPrice'] ?? null;
     const address                  = fields['address'] ?? '';
     const city                     = fields['city'] ?? '';
-    const state                    = fields['state'] ?? '';
+    const state                    = fields['state_name'] ?? '';
     const pincode                  = fields['pincode'] ?? null;
     const roadConnectivity         = fields['roadConnectivity'] ?? null;
     const latitude                 = fields['latitude'] ?? null;
@@ -192,6 +192,7 @@ export async function POST(request: NextRequest) {
 
     const images = files.filter(f => f.fieldname === 'images');
     const videos = files.filter(f => f.fieldname === 'videos');
+    const state_code = fields['state_code'] ?? '';
 
     // ── Validation ───────────────────────────────────────────────────────────
     if (!title || !propertyType || !totalArea || !availableFrom || !listingType || !pricePerSqFt || !address || !city || !state) {
@@ -271,8 +272,8 @@ export async function POST(request: NextRequest) {
         price_type, price_per_sqft, 
         address, city, state, pincode, road_connectivity,
         contact_person_name, contact_person_phone, contact_person_email, contact_person_designation,
-        latitude, longitude, amenities, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+        latitude, longitude, amenities, status, state_code)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
        RETURNING id, property_name, title, address, city, created_at`,
       [
         userId, title, title, description, normalizedPropertyType,
@@ -283,7 +284,7 @@ export async function POST(request: NextRequest) {
         latitude  ? parseFloat(latitude)  : null,
         longitude ? parseFloat(longitude) : null,
         JSON.stringify(amenities),
-        'Pending',
+        'Pending', state_code
       ]
     );
 
@@ -362,7 +363,7 @@ export async function GET(request: NextRequest) {
               address, city, state, pincode, road_connectivity,
               contact_person_name, contact_person_phone, contact_person_email, contact_person_designation,
               latitude, longitude, amenities,
-              is_verified, is_featured, status, created_at, updated_at
+              is_verified, is_featured, status, created_at, updated_at, state_code
        FROM warehouses
        WHERE user_id = $1
        ORDER BY created_at DESC`,

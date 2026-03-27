@@ -22,7 +22,7 @@ console.log(warehouseId, "warehouseId")
               address, city, state, pincode, road_connectivity,
               contact_person_name, contact_person_phone, contact_person_email, contact_person_designation,
               latitude, longitude, amenities,
-              is_verified, is_featured, status, created_at, updated_at
+              is_verified, is_featured, status, created_at, updated_at, state_code, property_code
        FROM warehouses
        WHERE id = $1 AND user_id = $2`,
       [warehouseId, session.agentId]

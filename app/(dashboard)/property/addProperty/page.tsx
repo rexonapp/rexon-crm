@@ -33,7 +33,10 @@ interface WarehouseFormData {
   totalPrice: string;
   address: string;
   city: string;
-  state: string;
+  state: {
+    name: string;
+    code: string;
+  };
   pincode: string;
   roadConnectivity: string;
   contactPersonName: string;
@@ -55,7 +58,10 @@ interface FieldErrors {
   pricePerSqFt?: string;
   address?: string;
   city?: string;
-  state?: string;
+  state?: {
+    name?: string;
+    code?: string;
+  };
   pincode?: string;
   contactPersonPhone?: string;
   contactPersonEmail?: string;
@@ -80,13 +86,46 @@ const AMENITIES = [
   'CCTV'
 ];
 
-const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
-  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-  'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry'
+// const INDIAN_STATES = [
+//   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+//   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+//   'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+//   'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+//   'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+//   'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry'
+// ];
+
+const INDIAN_STATES: { name: string; code: string }[] = [
+  { name: "Andhra Pradesh", code: "AP" },
+  { name: "Arunachal Pradesh", code: "AR" },
+  { name: "Assam", code: "AS" },
+  { name: "Bihar", code: "BR" },
+  { name: "Chhattisgarh", code: "CG" },
+  { name: "Goa", code: "GA" },
+  { name: "Gujarat", code: "GJ" },
+  { name: "Haryana", code: "HR" },
+  { name: "Himachal Pradesh", code: "HP" },
+  { name: "Jharkhand", code: "JH" },
+  { name: "Karnataka", code: "KA" },
+  { name: "Kerala", code: "KL" },
+  { name: "Madhya Pradesh", code: "MP" },
+  { name: "Maharashtra", code: "MH" },
+  { name: "Manipur", code: "MN" },
+  { name: "Meghalaya", code: "ML" },
+  { name: "Mizoram", code: "MZ" },
+  { name: "Nagaland", code: "NL" },
+  { name: "Odisha", code: "OR" },
+  { name: "Punjab", code: "PB" },
+  { name: "Rajasthan", code: "RJ" },
+  { name: "Sikkim", code: "SK" },
+  { name: "Tamil Nadu", code: "TN" },
+  { name: "Telangana", code: "TG" },
+  { name: "Tripura", code: "TR" },
+  { name: "Uttar Pradesh", code: "UP" },
+  { name: "Uttarakhand", code: "UK" },
+  { name: "West Bengal", code: "WB" },
+  { name: "Delhi", code: "DL" },
+  { name: "Puducherry", code: "PY" },
 ];
 
 const ROAD_CONNECTIVITY = [
@@ -117,7 +156,10 @@ export default function WarehouseUploadForm() {
     totalPrice: '',
     address: '',
     city: '',
-    state: '',
+    state: {
+      name: '',
+      code: '',
+    },
     pincode: '',
     roadConnectivity: '',
     contactPersonName: '',
@@ -142,7 +184,8 @@ export default function WarehouseUploadForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const router = useRouter();
-
+  const [stateOpen, setStateOpen] = useState(false);
+  
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
       case 'title':
@@ -256,7 +299,7 @@ export default function WarehouseUploadForm() {
     setFormData(prev => ({ ...prev, images: [...prev.images, ...imageFiles] }));
     setFieldErrors(prev => ({ ...prev, images: undefined }));
   };
-
+   console.log(formData, "formdatraaaa")
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     if (files.length === 0) return;
@@ -370,17 +413,48 @@ export default function WarehouseUploadForm() {
     try {
       const uploadFormData = new FormData();
 
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'images') {
-          formData.images.forEach(file => uploadFormData.append('images', file));
-        } else if (key === 'videos') {
-          formData.videos.forEach(file => uploadFormData.append('videos', file));
-        } else if (key === 'amenities') {
-          uploadFormData.append('amenities', JSON.stringify(value));
-        } else {
-          uploadFormData.append(key, value.toString());
-        }
-      });
+      // Object.entries(formData).forEach(([key, value]) => {
+      //   if (key === 'images') {
+      //     formData.images.forEach(file => uploadFormData.append('images', file));
+      //   } else if (key === 'videos') {
+      //     formData.videos.forEach(file => uploadFormData.append('videos', file));
+      //   } else if (key === 'amenities') {
+      //     uploadFormData.append('amenities', JSON.stringify(value));
+      //   } else {
+      //     uploadFormData.append(key, value.toString());
+      //   }
+      // });
+
+
+      uploadFormData.append('title', formData.title);
+uploadFormData.append('description', formData.description);
+uploadFormData.append('propertyType', formData.propertyType);
+uploadFormData.append('totalArea', formData.totalArea);
+uploadFormData.append('sizeUnit', formData.sizeUnit);
+uploadFormData.append('availableFrom', formData.availableFrom);
+uploadFormData.append('listingType', formData.listingType);
+uploadFormData.append('pricePerSqFt', formData.pricePerSqFt);
+uploadFormData.append('totalPrice', formData.totalPrice);
+uploadFormData.append('address', formData.address);
+uploadFormData.append('city', formData.city);
+
+// ⭐ NEW IMPORTANT FIELDS
+uploadFormData.append('state_name', formData.state.name);
+uploadFormData.append('state_code', formData.state.code);
+
+uploadFormData.append('pincode', formData.pincode);
+uploadFormData.append('roadConnectivity', formData.roadConnectivity);
+uploadFormData.append('latitude', formData.latitude);
+uploadFormData.append('longitude', formData.longitude);
+uploadFormData.append('contactPersonName', formData.contactPersonName);
+uploadFormData.append('contactPersonPhone', formData.contactPersonPhone);
+uploadFormData.append('contactPersonEmail', formData.contactPersonEmail);
+uploadFormData.append('contactPersonDesignation', formData.contactPersonDesignation);
+
+uploadFormData.append('amenities', JSON.stringify(formData.amenities));
+
+formData.images.forEach(file => uploadFormData.append('images', file));
+formData.videos.forEach(file => uploadFormData.append('videos', file));
 
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => prev >= 90 ? prev : prev + 10);
@@ -426,13 +500,19 @@ export default function WarehouseUploadForm() {
       : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500';
 
   // Helper: inline error message
-  const ErrMsg = ({ field }: { field: keyof FieldErrors }) =>
-    touchedFields.has(field) && fieldErrors[field] ? (
+  const ErrMsg = ({ field }: { field: keyof FieldErrors }) => {
+    const err = fieldErrors[field];
+  
+    if (!touchedFields.has(field)) return null;
+    if (!err || typeof err !== "string") return null;
+  
+    return (
       <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
         <AlertCircle className="h-4 w-4 shrink-0" />
-        {fieldErrors[field]}
+        {err}
       </p>
-    ) : null;
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 sm:py-10 py-2 px-4 sm:px-6 lg:px-8">
@@ -699,7 +779,7 @@ export default function WarehouseUploadForm() {
                     State <span className="text-red-500">*</span>
                   </Label>
 
-                  <Popover>
+                  <Popover open={stateOpen} onOpenChange={setStateOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         id="state"
@@ -707,13 +787,13 @@ export default function WarehouseUploadForm() {
                         role="combobox"
                         className={cn(
                           'h-11 w-full justify-between font-normal',
-                          !formData.state && 'text-muted-foreground',
-                          touchedFields.has('state') && fieldErrors.state
-                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                          !formData.state.name && 'text-muted-foreground',
+                          touchedFields.has('state') && fieldErrors.state?.name
+                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                             : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500'
                         )}
                       >
-                        {formData.state || 'Select state'}
+                        {formData.state.name || 'Select state'}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -728,25 +808,23 @@ export default function WarehouseUploadForm() {
                         <CommandList>
                           <CommandEmpty>No state found.</CommandEmpty>
                           <CommandGroup className="max-h-60 overflow-y-auto">
-                            {INDIAN_STATES.map(state => (
+                            {INDIAN_STATES.map(state=> (
                               <CommandItem
-                                key={state}
-                                value={state}
+                                key={state.code}
+                                value={`${state.name}|${state.code}`}
                                 onSelect={val => {
-                                  const matched =
-                                    INDIAN_STATES.find(
-                                      s => s.toLowerCase() === val.toLowerCase()
-                                    ) ?? val;
-                                  handleFieldChange('state', matched);
+                                  const [name, code] = val.split("|")
+                                  handleFieldChange('state', {name, code} );
+                                  setStateOpen(false);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     'mr-2 h-4 w-4',
-                                    formData.state === state ? 'opacity-100' : 'opacity-0'
+                                    formData.state.name === state.name ? 'opacity-100' : 'opacity-0'
                                   )}
                                 />
-                                {state}
+                                {state.name}
                               </CommandItem>
                             ))}
                           </CommandGroup>
@@ -828,7 +906,7 @@ export default function WarehouseUploadForm() {
                         longitude={formData.longitude}
                         address={formData.address}
                         city={formData.city}
-                        state={formData.state}
+                        state={formData.state.name}
                         onLocationSelect={handleLocationSelect}
                       />
                     </div>
