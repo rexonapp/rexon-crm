@@ -645,7 +645,7 @@ export default function MyListingsPage() {
                         <TableHead
                           key={label}
                           className={cn(
-                            'text-[11.5px] font-bold uppercase tracking-[0.07em] text-muted-foreground/60 h-11 px-4',
+                            'text-l font-bold tracking-[0.07em] text-muted-foreground/60 h-11 px-4',
                             cls
                           )}
                         >
