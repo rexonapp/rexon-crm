@@ -6,6 +6,7 @@ import { getSession } from '@/lib/auth';
 import { randomBytes } from 'crypto';
 import Busboy from 'busboy';
 import { Readable } from 'stream';
+import { getAutoApprovalFlags } from '@/lib/getAutoApprovalFlag';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -263,6 +264,10 @@ export async function POST(request: NextRequest) {
     const normalizedRoadConnectivity = roadConnectivity
       ? roadConnectivityMap[roadConnectivity] || 'Other'
       : null;
+      const { autoApproveListings} = await getAutoApprovalFlags();
+      console.log('autoApprovaListings:', autoApproveListings);
+      const initialStatus = autoApproveListings ? 'Active' : 'Pending';
+      console.log(initialStatus,'inital status')
 
     // ── Insert warehouse record ──────────────────────────────────────────────
     const warehouseResult = await query(
@@ -284,7 +289,7 @@ export async function POST(request: NextRequest) {
         latitude  ? parseFloat(latitude)  : null,
         longitude ? parseFloat(longitude) : null,
         JSON.stringify(amenities),
-        'Pending', state_code
+        initialStatus, state_code
       ]
     );
 
