@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     const totalPrice               = fields['totalPrice'] ?? null;
     const address                  = fields['address'] ?? '';
     const city                     = fields['city'] ?? '';
-    const state                    = fields['state_name'] ?? '';
+    const state                    = fields['state'] ?? '';
     const pincode                  = fields['pincode'] ?? null;
     const roadConnectivity         = fields['roadConnectivity'] ?? null;
     const latitude                 = fields['latitude'] ?? null;

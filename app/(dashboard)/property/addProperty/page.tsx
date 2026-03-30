@@ -185,7 +185,7 @@ export default function WarehouseUploadForm() {
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const router = useRouter();
   const [stateOpen, setStateOpen] = useState(false);
-  
+
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
       case 'title':
@@ -299,7 +299,7 @@ export default function WarehouseUploadForm() {
     setFormData(prev => ({ ...prev, images: [...prev.images, ...imageFiles] }));
     setFieldErrors(prev => ({ ...prev, images: undefined }));
   };
-   console.log(formData, "formdatraaaa")
+
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     if (files.length === 0) return;
@@ -427,34 +427,33 @@ export default function WarehouseUploadForm() {
 
 
       uploadFormData.append('title', formData.title);
-uploadFormData.append('description', formData.description);
-uploadFormData.append('propertyType', formData.propertyType);
-uploadFormData.append('totalArea', formData.totalArea);
-uploadFormData.append('sizeUnit', formData.sizeUnit);
-uploadFormData.append('availableFrom', formData.availableFrom);
-uploadFormData.append('listingType', formData.listingType);
-uploadFormData.append('pricePerSqFt', formData.pricePerSqFt);
-uploadFormData.append('totalPrice', formData.totalPrice);
-uploadFormData.append('address', formData.address);
-uploadFormData.append('city', formData.city);
+      uploadFormData.append('description', formData.description);
+      uploadFormData.append('propertyType', formData.propertyType);
+      uploadFormData.append('totalArea', formData.totalArea);
+      uploadFormData.append('sizeUnit', formData.sizeUnit);
+      uploadFormData.append('availableFrom', formData.availableFrom);
+      uploadFormData.append('listingType', formData.listingType);
+      uploadFormData.append('pricePerSqFt', formData.pricePerSqFt);
+      uploadFormData.append('totalPrice', formData.totalPrice);
+      uploadFormData.append('address', formData.address);
+      uploadFormData.append('city', formData.city);
 
-// ⭐ NEW IMPORTANT FIELDS
-uploadFormData.append('state_name', formData.state.name);
-uploadFormData.append('state_code', formData.state.code);
+      uploadFormData.append('state', formData.state.name);
+      uploadFormData.append('state_code', formData.state.code);
 
-uploadFormData.append('pincode', formData.pincode);
-uploadFormData.append('roadConnectivity', formData.roadConnectivity);
-uploadFormData.append('latitude', formData.latitude);
-uploadFormData.append('longitude', formData.longitude);
-uploadFormData.append('contactPersonName', formData.contactPersonName);
-uploadFormData.append('contactPersonPhone', formData.contactPersonPhone);
-uploadFormData.append('contactPersonEmail', formData.contactPersonEmail);
-uploadFormData.append('contactPersonDesignation', formData.contactPersonDesignation);
+      uploadFormData.append('pincode', formData.pincode);
+      uploadFormData.append('roadConnectivity', formData.roadConnectivity);
+      uploadFormData.append('latitude', formData.latitude);
+      uploadFormData.append('longitude', formData.longitude);
+      uploadFormData.append('contactPersonName', formData.contactPersonName);
+      uploadFormData.append('contactPersonPhone', formData.contactPersonPhone);
+      uploadFormData.append('contactPersonEmail', formData.contactPersonEmail);
+      uploadFormData.append('contactPersonDesignation', formData.contactPersonDesignation);
 
-uploadFormData.append('amenities', JSON.stringify(formData.amenities));
+      uploadFormData.append('amenities', JSON.stringify(formData.amenities));
 
-formData.images.forEach(file => uploadFormData.append('images', file));
-formData.videos.forEach(file => uploadFormData.append('videos', file));
+      formData.images.forEach(file => uploadFormData.append('images', file));
+      formData.videos.forEach(file => uploadFormData.append('videos', file));
 
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => prev >= 90 ? prev : prev + 10);
@@ -502,10 +501,10 @@ formData.videos.forEach(file => uploadFormData.append('videos', file));
   // Helper: inline error message
   const ErrMsg = ({ field }: { field: keyof FieldErrors }) => {
     const err = fieldErrors[field];
-  
+
     if (!touchedFields.has(field)) return null;
     if (!err || typeof err !== "string") return null;
-  
+
     return (
       <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
         <AlertCircle className="h-4 w-4 shrink-0" />
@@ -773,68 +772,68 @@ formData.videos.forEach(file => uploadFormData.append('videos', file));
                     <ErrMsg field="city" />
                   </div>
 
-                  
-                <div className="space-y-2 w-full">
-                  <Label htmlFor="state" className="text-sm font-semibold">
-                    State <span className="text-red-500">*</span>
-                  </Label>
 
-                  <Popover open={stateOpen} onOpenChange={setStateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="state"
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          'h-11 w-full justify-between font-normal',
-                          !formData.state.name && 'text-muted-foreground',
-                          touchedFields.has('state') && fieldErrors.state?.name
-                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500'
-                        )}
+                  <div className="space-y-2 w-full">
+                    <Label htmlFor="state" className="text-sm font-semibold">
+                      State <span className="text-red-500">*</span>
+                    </Label>
+
+                    <Popover open={stateOpen} onOpenChange={setStateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="state"
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            'h-11 w-full justify-between font-normal',
+                            !formData.state.name && 'text-muted-foreground',
+                            touchedFields.has('state') && fieldErrors.state?.name
+                              ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                              : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500'
+                          )}
+                        >
+                          {formData.state.name || 'Select state'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent
+                        className="p-0"
+                        align="start"
+                        style={{ width: 'var(--radix-popover-trigger-width)' }}
                       >
-                        {formData.state.name || 'Select state'}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
+                        <Command>
+                          <CommandInput placeholder="Search state..." />
+                          <CommandList>
+                            <CommandEmpty>No state found.</CommandEmpty>
+                            <CommandGroup className="max-h-60 overflow-y-auto">
+                              {INDIAN_STATES.map(state => (
+                                <CommandItem
+                                  key={state.code}
+                                  value={`${state.name}|${state.code}`}
+                                  onSelect={val => {
+                                    const [name, code] = val.split("|")
+                                    handleFieldChange('state', { name, code });
+                                    setStateOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      formData.state.name === state.name ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  {state.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
 
-                    <PopoverContent
-                      className="p-0"
-                      align="start"
-                      style={{ width: 'var(--radix-popover-trigger-width)' }}
-                    >
-                      <Command>
-                        <CommandInput placeholder="Search state..." />
-                        <CommandList>
-                          <CommandEmpty>No state found.</CommandEmpty>
-                          <CommandGroup className="max-h-60 overflow-y-auto">
-                            {INDIAN_STATES.map(state=> (
-                              <CommandItem
-                                key={state.code}
-                                value={`${state.name}|${state.code}`}
-                                onSelect={val => {
-                                  const [name, code] = val.split("|")
-                                  handleFieldChange('state', {name, code} );
-                                  setStateOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    'mr-2 h-4 w-4',
-                                    formData.state.name === state.name ? 'opacity-100' : 'opacity-0'
-                                  )}
-                                />
-                                {state.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-
-                  <ErrMsg field="state" />
-                </div>
+                    <ErrMsg field="state" />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1026,11 +1025,10 @@ formData.videos.forEach(file => uploadFormData.append('videos', file));
                   {imagePreviews.length === 0 ? (
                     <div>
                       <Label htmlFor="images" className="block w-full cursor-pointer">
-                        <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                          touchedFields.has('images') && fieldErrors.images
+                        <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${touchedFields.has('images') && fieldErrors.images
                             ? 'border-red-500 bg-red-50'
                             : 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
-                        }`}>
+                          }`}>
                           <input id="images" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleImageChange} className="hidden" />
                           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Upload className="h-8 w-8 text-gray-500" />
@@ -1120,11 +1118,10 @@ formData.videos.forEach(file => uploadFormData.append('videos', file));
                   {formData.videos.length < MAX_VIDEOS && (
                     <div className="mb-4">
                       <Label htmlFor="videos" className="block w-full cursor-pointer">
-                        <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
-                          touchedFields.has('videos') && fieldErrors.videos
+                        <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${touchedFields.has('videos') && fieldErrors.videos
                             ? 'border-red-500 bg-red-50'
                             : 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
-                        }`}>
+                          }`}>
                           <input id="videos" type="file" multiple accept="video/*" onChange={handleVideoChange} className="hidden" />
                           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Video className="h-6 w-6 text-gray-500" />
@@ -1275,11 +1272,10 @@ formData.videos.forEach(file => uploadFormData.append('videos', file));
                     <button
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden transition-all ${
-                        index === selectedImageIndex
+                      className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden transition-all ${index === selectedImageIndex
                           ? 'ring-4 ring-gray-800 scale-105 shadow-lg'
                           : 'ring-2 ring-gray-200 hover:ring-gray-400 hover:scale-105'
-                      }`}
+                        }`}
                     >
                       <img src={preview} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
                       {index === selectedImageIndex && <div className="absolute inset-0 bg-gray-900/20" />}

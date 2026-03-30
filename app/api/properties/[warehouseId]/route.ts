@@ -111,7 +111,6 @@ export async function PATCH(
 
     const { warehouseId } = await params;
     const formData = await request.formData();
-
     // Verify ownership
     const ownerCheck = await query(
       'SELECT id FROM warehouses WHERE id = $1 AND user_id = $2',
@@ -120,7 +119,7 @@ export async function PATCH(
     if (ownerCheck.rows.length === 0) {
       return NextResponse.json({ error: 'Property not found or access denied' }, { status: 404 });
     }
-
+ console.log(formData, "formatdata")
     // Extract fields
     const title = formData.get('title') as string;
     const description = formData.get('description') as string || '';
@@ -134,6 +133,7 @@ export async function PATCH(
     const address = formData.get('address') as string;
     const city = formData.get('city') as string;
     const state = formData.get('state') as string;
+    const state_code = formData.get('state_code') as string;
     const pincode = formData.get('pincode') as string || null;
     const roadConnectivity = formData.get('roadConnectivity') as string || null;
     const latitude = formData.get('latitude') as string || null;
@@ -183,7 +183,7 @@ export async function PATCH(
         address = $11, city = $12, state = $13, pincode = $14, road_connectivity = $15,
         contact_person_name = $16, contact_person_phone = $17, contact_person_email = $18,
         contact_person_designation = $19, latitude = $20, longitude = $21,
-        amenities = $22, status = 'Pending', updated_at = NOW()
+        amenities = $22, status = 'Pending', updated_at = NOW(), state_code = $25
        WHERE id = $23 AND user_id = $24`,
       [
         title, title, description, normalizedPropertyType,
@@ -192,7 +192,7 @@ export async function PATCH(
         address, city, state, pincode, normalizedRoadConnectivity,
         contactPersonName, contactPersonPhone, contactPersonEmail, contactPersonDesignation,
         latitude ? parseFloat(latitude) : null, longitude ? parseFloat(longitude) : null,
-        JSON.stringify(amenities), warehouseId, session.agentId
+        JSON.stringify(amenities), warehouseId, session.agentId, state_code
       ]
     );
 

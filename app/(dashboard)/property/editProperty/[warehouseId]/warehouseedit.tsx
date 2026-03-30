@@ -49,7 +49,10 @@ interface WarehouseFormData {
   totalPrice: string;
   address: string;
   city: string;
-  state: string;
+  state: {
+    name: string;
+    code: string;
+  };
   pincode: string;
   roadConnectivity: string;
   contactPersonName: string;
@@ -68,7 +71,10 @@ interface FieldErrors {
   pricePerSqFt?: string;
   address?: string;
   city?: string;
-  state?: string;
+  state?: {
+    name?: string;
+    code?: string;
+  };
   pincode?: string;
   contactPersonPhone?: string;
   contactPersonEmail?: string;
@@ -80,14 +86,48 @@ const PROPERTY_TYPES = [
   'Godown', 'Factory Space', 'Logistics Hub', 'Distribution Center'
 ];
 const AMENITIES = ['Parking', 'Security', 'CCTV'];
-const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
-  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-  'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry'
+// const INDIAN_STATES = [
+//   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+//   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+//   'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+//   'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+//   'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+//   'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry'
+// ];
+
+const INDIAN_STATES: { name: string; code: string }[] = [
+  { name: "Andhra Pradesh", code: "AP" },
+  { name: "Arunachal Pradesh", code: "AR" },
+  { name: "Assam", code: "AS" },
+  { name: "Bihar", code: "BR" },
+  { name: "Chhattisgarh", code: "CG" },
+  { name: "Goa", code: "GA" },
+  { name: "Gujarat", code: "GJ" },
+  { name: "Haryana", code: "HR" },
+  { name: "Himachal Pradesh", code: "HP" },
+  { name: "Jharkhand", code: "JH" },
+  { name: "Karnataka", code: "KA" },
+  { name: "Kerala", code: "KL" },
+  { name: "Madhya Pradesh", code: "MP" },
+  { name: "Maharashtra", code: "MH" },
+  { name: "Manipur", code: "MN" },
+  { name: "Meghalaya", code: "ML" },
+  { name: "Mizoram", code: "MZ" },
+  { name: "Nagaland", code: "NL" },
+  { name: "Odisha", code: "OR" },
+  { name: "Punjab", code: "PB" },
+  { name: "Rajasthan", code: "RJ" },
+  { name: "Sikkim", code: "SK" },
+  { name: "Tamil Nadu", code: "TN" },
+  { name: "Telangana", code: "TG" },
+  { name: "Tripura", code: "TR" },
+  { name: "Uttar Pradesh", code: "UP" },
+  { name: "Uttarakhand", code: "UK" },
+  { name: "West Bengal", code: "WB" },
+  { name: "Delhi", code: "DL" },
+  { name: "Puducherry", code: "PY" },
 ];
+
 const ROAD_CONNECTIVITY = [
   'National Highway', 'State Highway', 'City Road', 'Main Road',
   'Interior Road', 'Service Road', 'Other'
@@ -164,10 +204,12 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const [imageToDelete, setImageToDelete]   = useState<{ type: 'existing' | 'new'; index: number } | null>(null);
   const [fieldErrors, setFieldErrors]       = useState<FieldErrors>({});
   const [touchedFields, setTouchedFields]   = useState<Set<string>>(new Set());
+  const [stateOpen, setStateOpen] = useState(false);
 
   const availableFromFormatted = initialData.available_from
     ? new Date(initialData.available_from).toISOString().split('T')[0]
     : '';
+    console.log(initialData, "656789")
 
   const [formData, setFormData] = useState<WarehouseFormData>({
     title:                    initialData.title || '',
@@ -183,7 +225,10 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
     totalPrice:               initialData.total_price?.toString() || '',
     address:                  initialData.address || '',
     city:                     initialData.city || '',
-    state:                    initialData.state || '',
+    state: {
+      name: initialData.state || '',
+      code: initialData.state_code ||'',
+    },
     pincode:                  initialData.pincode || '',
     roadConnectivity:         initialData.road_connectivity || '',
     contactPersonName:        initialData.contact_person_name || '',
@@ -199,7 +244,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const totalVideos      = existingVideos.length + newVideos.length;
   const visibleCount     = 3;
   const remainingImages  = allImageUrls.length - visibleCount;
-
+  console.log(formData, "dfbsfsk")
   /* ── Validation ── */
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
@@ -350,8 +395,17 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
     try {
       const fd = new FormData();
       Object.entries(formData).forEach(([k, v]) => {
-        if (k === 'amenities') fd.append('amenities', JSON.stringify(v));
-        else fd.append(k, (v as any).toString());
+        if (k === 'amenities') {
+          fd.append('amenities', JSON.stringify(v));
+        }
+        else if (k === 'state') {
+          // ⭐ MOST IMPORTANT FIX
+          fd.append('state', v.name);
+          fd.append('state_code', v.code);
+        }
+        else {
+          fd.append(k, (v ?? '').toString());
+        }
       });
       fd.append('deletedImageIds', JSON.stringify(deletedImageIds));
       fd.append('deletedVideoIds', JSON.stringify(deletedVideoIds));
@@ -575,7 +629,8 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="state" className="text-[12.5px] font-medium text-muted-foreground">State<Req /></Label>
-                  <Popover>
+
+                  <Popover open={stateOpen} onOpenChange={setStateOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         id="state"
@@ -583,11 +638,11 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                         role="combobox"
                         className={cn(
                           'h-9 w-full justify-between font-normal text-[13px]',
-                          !formData.state && 'text-muted-foreground',
-                          touchedFields.has('state') && fieldErrors.state && 'border-destructive'
+                          !formData.state.name && 'text-muted-foreground',
+                          touchedFields.has('state') && fieldErrors.state?.name && 'border-destructive'
                         )}
                       >
-                        {formData.state || 'Select state'}
+                        {formData.state.name || 'Select state'}
                         <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -605,23 +660,22 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                           <CommandGroup className="max-h-60 overflow-y-auto">
                             {INDIAN_STATES.map(state => (
                               <CommandItem
-                                key={state}
-                                value={state}
-                                className="text-[13px]"
+                              key={state.code}
+                              value={`${state.name}|${state.code}`}
+                              className="text-[13px]"
                                 onSelect={val => {
-                                  const matched = INDIAN_STATES.find(
-                                    s => s.toLowerCase() === val.toLowerCase()
-                                  ) ?? val;
-                                  handleFieldChange('state', matched);
+                                  const [name, code] = val.split("|")
+                                  handleFieldChange('state', { name, code });
+                                  setStateOpen(false);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     'mr-2 h-3.5 w-3.5',
-                                    formData.state === state ? 'opacity-100' : 'opacity-0'
+                                    formData.state.name === state.name ? 'opacity-100' : 'opacity-0'
                                   )}
                                 />
-                                {state}
+                                {state.name}
                               </CommandItem>
                             ))}
                           </CommandGroup>
@@ -629,7 +683,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {touchedFields.has('state') && <FieldError message={fieldErrors.state} />}
+                  {touchedFields.has('state') && <FieldError message={fieldErrors.state?.name} />}
                 </div>
                 </div>
 
@@ -685,7 +739,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                     <div className="mt-4 p-4 border border-border rounded-lg bg-accent/30">
                       <MapSelector
                         latitude={formData.latitude} longitude={formData.longitude}
-                        address={formData.address} city={formData.city} state={formData.state}
+                        address={formData.address} city={formData.city} state={formData.state.name}
                         onLocationSelect={(lat, lng) => setFormData(p => ({ ...p, latitude: lat, longitude: lng }))}
                       />
                     </div>
