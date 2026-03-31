@@ -269,7 +269,6 @@ export async function POST(request: NextRequest) {
       const initialStatus = autoApproveListings ? 'Active' : 'Pending';
       console.log(initialStatus,'inital status')
 
-    // ── Insert warehouse record ──────────────────────────────────────────────
     const warehouseResult = await query(
       `INSERT INTO warehouses 
        (user_id, property_name, title, description, property_type, 
