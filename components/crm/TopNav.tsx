@@ -170,7 +170,6 @@ function NavIconBtn({
       }
     }, []);
   
-    // ── Mark all read ──
     const markAllRead = useCallback(async () => {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       try {
@@ -180,7 +179,6 @@ function NavIconBtn({
       }
     }, [fetchNotifications]);
   
-    // ── Delete ──
     const deleteNotif = useCallback(async (id: number) => {
       setNotifications(prev => prev.filter(n => n.id !== id));
       try {
@@ -486,14 +484,6 @@ export default function TopNav({
         {/* Actions */}
         <div className="flex items-center gap-1">
           <NotificationButton />
-          <Link href="/property/addProperty">
-            <NavIconBtn tooltip="Quick add (N)" className="hidden sm:flex">
-              <PlusIcon className="w-[18px] h-[18px]" />
-            </NavIconBtn>
-          </Link>
-          <NavIconBtn tooltip="Help & docs" className="hidden sm:flex">
-            <HelpCircleIcon className="w-[18px] h-[18px]" />
-          </NavIconBtn>
 
           <Separator orientation="vertical" className="h-5 mx-2 hidden sm:block" />
 
