@@ -487,40 +487,8 @@ export default function TopNav({
 
           <Separator orientation="vertical" className="h-5 mx-2 hidden sm:block" />
 
-          {/* ✅ Agent identity — photo updates immediately via event */}
-          <div className="flex items-center gap-2.5 mr-1">
-            {agent?.profile_photo_s3_url ? (
-              <img
-                src={agent.profile_photo_s3_url}
-                alt={agent.full_name}
-                className="w-8 h-8 rounded-full object-cover border border-border shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-bold text-background">{initials}</span>
-              </div>
-            )}
-            {agent && (
-              <div className="hidden md:block leading-tight">
-                <p className="text-[13px] font-semibold text-foreground truncate max-w-[130px]">
-                  {agent.full_name}
-                </p>
-                {agent.agency_name && (
-                  <p className="text-[11px] text-muted-foreground truncate max-w-[130px]">
-                    {agent.agency_name}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+      
 
-          <button
-            onClick={onSignInClick}
-            className="inline-flex items-center gap-1.5 border border-border hover:bg-accent text-foreground text-[13px] font-medium rounded-lg px-3 h-9 transition-colors leading-none cursor-pointer"
-          >
-            <LogOutIcon className="w-[15px] h-[15px]" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
         </div>
       </header>
     </TooltipProvider>
