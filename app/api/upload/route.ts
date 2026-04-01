@@ -7,6 +7,7 @@ import { randomBytes } from 'crypto';
 import Busboy from 'busboy';
 import { Readable } from 'stream';
 import { getAutoApprovalFlags } from '@/lib/getAutoApprovalFlag';
+import { notifyPropertyAdded } from '@/lib/notifyPropertyAdded';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -269,7 +270,6 @@ export async function POST(request: NextRequest) {
       const initialStatus = autoApproveListings ? 'Active' : 'Pending';
       console.log(initialStatus,'inital status')
 
-    // ── Insert warehouse record ──────────────────────────────────────────────
     const warehouseResult = await query(
       `INSERT INTO warehouses 
        (user_id, property_name, title, description, property_type, 
@@ -294,6 +294,18 @@ export async function POST(request: NextRequest) {
     );
 
     const warehouseId = warehouseResult.rows[0].id;
+    const agentNameResult = await query(
+      `SELECT full_name FROM agents WHERE id = $1`,
+      [userId]
+    );
+    const agentName = agentNameResult.rows[0]?.full_name ?? `Agent #${userId}`;
+ 
+    notifyPropertyAdded({
+      agentId:       userId,
+      agentName,
+      propertyTitle: title,
+      warehouseId,
+    }).catch(err => console.error('[notifyPropertyAdded] failed silently:', err));
 
     // ── Upload images concurrently ───────────────────────────────────────────
     const imageUploadPromises = images.map(async (file, index) => {
