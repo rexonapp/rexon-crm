@@ -37,7 +37,6 @@ console.log(warehouseId, "warehouseId")
 
     const warehouse = result.rows[0];
 
-console.log(result, "result")
     const result1 = await query(
       `SELECT id, title, description, property_type,
               space_available, warehouse_size,
@@ -50,7 +49,6 @@ console.log(result, "result")
        WHERE id = $1`,
       [warehouseId]
     );
-    console.log(result1, "result1111")
 
     if (result1.rows.length === 0) {
       return NextResponse.json(

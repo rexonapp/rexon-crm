@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, MapPin, Building2, User, IndianRupee, FileText, Image as ImageIcon, Video, Plus, Eye, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Check, ChevronsUpDown } from 'lucide-react';
@@ -185,6 +185,9 @@ export default function WarehouseUploadForm() {
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const router = useRouter();
   const [stateOpen, setStateOpen] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<any>(null);
 
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
@@ -265,6 +268,7 @@ export default function WarehouseUploadForm() {
         : [...prev.amenities, amenity]
     }));
   };
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -755,23 +759,85 @@ export default function WarehouseUploadForm() {
                   <ErrMsg field="address" />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* City */}
+                    {/* <div className="space-y-2">
+                      <Label htmlFor="city" className="text-sm font-semibold">
+                        City <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={e => handleFieldChange('city', e.target.value)}
+                        onBlur={() => handleFieldBlur('city')}
+                        placeholder="e.g., Mumbai"
+                        className={`h-11 ${errBorder('city')}`}
+                      />
+                      <ErrMsg field="city" />
+                    </div> */}
+
                   {/* City */}
-                  <div className="space-y-2">
-                    <Label htmlFor="city" className="text-sm font-semibold">
+               
+                   { <div className="space-y-2 relative">
+                      <Label htmlFor="city" className="text-sm font-semibold">
                       City <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="city"
                       value={formData.city}
-                      onChange={e => handleFieldChange('city', e.target.value)}
-                      onBlur={() => handleFieldBlur('city')}
-                      placeholder="e.g., Mumbai"
-                      className={`h-11 ${errBorder('city')}`}
+                      placeholder="Search city..."
+                      onChange={(e) => {
+                        const inputValue = e.target.value;
+
+                        handleFieldChange('city', inputValue);
+
+                        if (debounceRef.current) {
+                          clearTimeout(debounceRef.current);
+                        }
+
+                        if (inputValue.length < 2) {
+                          setFilteredCities([]);
+                          setShowDropdown(false);
+                          return;
+                        }
+
+                        debounceRef.current = setTimeout(async () => {
+                          try {
+                            const res = await fetch(`/api/cities?search=${inputValue}`);
+                            const data = await res.json();
+
+                            setFilteredCities(data);
+                            setShowDropdown(true);
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }, 300);
+                      }}
+                      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     />
+
+                    {/* Dropdown */}
+                    {showDropdown && filteredCities.length > 0 && (
+                      <div className="absolute z-[9999] w-full bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {filteredCities.map((c) => (
+                          <div
+                            key={c.id}
+                            className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                            onMouseDown={() => {
+                              handleFieldChange('city', c.city);
+                              handleFieldChange('latitude', c.latitude);
+                              handleFieldChange('longitude', c.longitude);
+                              setShowDropdown(false);
+                            }}
+                          >
+                            {c.city}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <ErrMsg field="city" />
                   </div>
-
+                  }
 
                   <div className="space-y-2 w-full">
                     <Label htmlFor="state" className="text-sm font-semibold">

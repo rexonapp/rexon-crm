@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Upload, X, CheckCircle, AlertCircle, MapPin, Building2, User,
@@ -209,10 +209,12 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const availableFromFormatted = initialData.available_from
     ? new Date(initialData.available_from).toISOString().split('T')[0]
     : '';
-    console.log(initialData, "656789")
+  const [filteredCities, setFilteredCities] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<any>(null);
 
   const [formData, setFormData] = useState<WarehouseFormData>({
-    title:                    initialData.title || '',
+    title: initialData.title || '',
     description:              initialData.description || '',
     propertyType:             initialData.property_type
       ? (Object.entries(PROPERTY_TYPE_REVERSE).find(([, v]) => v === initialData.property_type)?.[0] || initialData.property_type)
@@ -244,7 +246,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const totalVideos      = existingVideos.length + newVideos.length;
   const visibleCount     = 3;
   const remainingImages  = allImageUrls.length - visibleCount;
-  console.log(formData, "dfbsfsk")
+
   /* ── Validation ── */
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
@@ -616,14 +618,67 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 relative">
                     <Label htmlFor="city" className="text-[12.5px] font-medium text-muted-foreground">City<Req /></Label>
-                    <Input id="city" value={formData.city}
-                      onChange={e => handleFieldChange('city', e.target.value)}
-                      onBlur={() => handleFieldBlur('city')}
-                      placeholder="e.g., Mumbai"
-                      className={cn('h-9 text-[13.5px]', touchedFields.has('city') && fieldErrors.city && 'border-destructive')}
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      placeholder="Search city..."
+                      onChange={(e) => {
+                        const inputValue = e.target.value;
+
+                        handleFieldChange('city', inputValue);
+
+                        if (debounceRef.current) {
+                          clearTimeout(debounceRef.current);
+                        }
+
+                        if (inputValue.length < 2) {
+                          setFilteredCities([]);
+                          setShowDropdown(false);
+                          return;
+                        }
+
+                        debounceRef.current = setTimeout(async () => {
+                          try {
+                            const res = await fetch(`/api/cities?search=${inputValue}`);
+                            const data = await res.json();
+
+                            setFilteredCities(data);
+                            setShowDropdown(true);
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }, 300);
+                      }}
+                      onBlur={() => {
+                        handleFieldBlur('city');
+                        setTimeout(() => setShowDropdown(false), 200);
+                      }}
+                      className={cn(
+                        'h-9 text-[13.5px]',
+                        touchedFields.has('city') && fieldErrors.city && 'border-destructive'
+                      )}
                     />
+
+                    {showDropdown && filteredCities.length > 0 && (
+                      <div className="absolute z-[9999] w-full bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {filteredCities.map((c: any) => (
+                          <div
+                            key={c.id}
+                            className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                            onMouseDown={() => {
+                              handleFieldChange('city', c.city);
+                              handleFieldChange('latitude', c.latitude);
+                              handleFieldChange('longitude', c.longitude);
+                              setShowDropdown(false);
+                            }}
+                          >
+                            {c.city}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {touchedFields.has('city') && <FieldError message={fieldErrors.city} />}
                   </div>
 
