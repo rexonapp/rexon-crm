@@ -45,6 +45,8 @@ interface WarehouseFormData {
   contactPersonDesignation: string;
   latitude: string;
   longitude: string;
+  contactPersonAlternatePhone: string;
+  isPriceNegotiable: boolean;
   amenities: string[];
   images: File[];
   videos: File[];
@@ -64,20 +66,20 @@ interface FieldErrors {
   };
   pincode?: string;
   contactPersonPhone?: string;
+  contactPersonAlternatePhone?: string;
   contactPersonEmail?: string;
   images?: string;
   videos?: string;
 }
-
 const PROPERTY_TYPES = [
-  'Warehouse',
-  'Cold Storage',
-  'Industrial Shed',
-  'Manufacturing Unit',
-  'Godown',
-  'Factory Space',
-  'Logistics Hub',
-  'Distribution Center'
+  { label: 'Warehouse', value: 'warehouse' },
+  { label: 'Cold Storage', value: 'cold_storage' },
+  { label: 'Industrial Shed', value: 'industrial_shed' },
+  { label: 'Manufacturing Unit', value: 'manufacturing_unit' },
+  { label: 'Godown', value: 'godown' },
+  { label: 'Factory Space', value: 'factory_space' },
+  { label: 'Logistics Hub', value: 'logistics_hub' },
+  { label: 'Distribution Center', value: 'distribution_center' },
 ];
 
 const AMENITIES = [
@@ -166,6 +168,8 @@ export default function WarehouseUploadForm() {
     contactPersonPhone: '',
     contactPersonEmail: '',
     contactPersonDesignation: '',
+    contactPersonAlternatePhone: '',
+    isPriceNegotiable: false,
     latitude: '',
     longitude: '',
     amenities: [],
@@ -188,6 +192,7 @@ export default function WarehouseUploadForm() {
   const [filteredCities, setFilteredCities] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<any>(null);
+  const [isTotalPriceManuallyEdited, setIsTotalPriceManuallyEdited] = useState(false);
 
   const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
@@ -226,6 +231,11 @@ export default function WarehouseUploadForm() {
           return 'Enter a valid 10-digit mobile number starting with 6-9';
         }
         break;
+      case 'contactPersonAlternatePhone':
+          if (value && !/^[6-9]\d{9}$/.test(value.replace(/\s/g, ''))) {
+            return 'Enter a valid 10-digit mobile number starting with 6-9';
+          }
+          break;
       case 'contactPersonEmail':
         if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
           return 'Enter a valid email address';
@@ -451,6 +461,8 @@ export default function WarehouseUploadForm() {
       uploadFormData.append('longitude', formData.longitude);
       uploadFormData.append('contactPersonName', formData.contactPersonName);
       uploadFormData.append('contactPersonPhone', formData.contactPersonPhone);
+      uploadFormData.append('contactPersonAlternatePhone', formData.contactPersonAlternatePhone);
+      uploadFormData.append('isPriceNegotiable', formData.isPriceNegotiable.toString());
       uploadFormData.append('contactPersonEmail', formData.contactPersonEmail);
       uploadFormData.append('contactPersonDesignation', formData.contactPersonDesignation);
 
@@ -516,6 +528,16 @@ export default function WarehouseUploadForm() {
       </p>
     );
   };
+  useEffect(() => {
+    if (isTotalPriceManuallyEdited) return;
+    const area = parseFloat(formData.totalArea);
+    const price = parseFloat(formData.pricePerSqFt);
+    if (!isNaN(area) && !isNaN(price) && area > 0 && price > 0) {
+      setFormData(prev => ({ ...prev, totalPrice: (area * price).toFixed(2) }));
+    } else {
+      setFormData(prev => ({ ...prev, totalPrice: '' }));
+    }
+  }, [formData.totalArea, formData.pricePerSqFt, isTotalPriceManuallyEdited]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 sm:py-10 py-2 px-4 sm:px-6 lg:px-8">
@@ -585,13 +607,18 @@ export default function WarehouseUploadForm() {
                     <Label htmlFor="propertyType" className="text-sm font-semibold">
                       Property Type <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={formData.propertyType} onValueChange={v => handleFieldChange('propertyType', v)}>
+                    <Select
+                      value={formData.propertyType}
+                      onValueChange={v => handleFieldChange('propertyType', v)}
+                    >
                       <SelectTrigger id="propertyType" className={`w-full h-11 ${errBorder('propertyType')}`}>
                         <SelectValue placeholder="Select type..." />
                       </SelectTrigger>
                       <SelectContent className="max-w-[calc(100vw-2rem)]">
                         {PROPERTY_TYPES.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -712,21 +739,63 @@ export default function WarehouseUploadForm() {
                 </div>
 
                 {/* Total Price */}
-                <div className="space-y-2">
-                  <Label htmlFor="totalPrice" className="text-sm font-semibold">Total Price (Optional)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
-                    <Input
-                      id="totalPrice"
-                      type="number"
-                      min={0}
-                      value={formData.totalPrice}
-                      onChange={e => setFormData({ ...formData, totalPrice: e.target.value })}
-                      className="pl-8 h-11 border-gray-300 focus:border-gray-500"
-                      placeholder="0.00"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="totalPrice" className="text-sm font-semibold">
+                    Total Price
+                    <span className="ml-2 text-xs font-normal text-gray-400">(Optional)</span>
+                  </Label>
+                  {isTotalPriceManuallyEdited && formData.totalArea && formData.pricePerSqFt && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTotalPriceManuallyEdited(false);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                    >
+                      Reset to calculated
+                    </button>
+                  )}
                 </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                  <Input
+                    id="totalPrice"
+                    type="number"
+                    min={0}
+                    value={formData.totalPrice}
+                    onChange={e => {
+                      setIsTotalPriceManuallyEdited(true);
+                      setFormData({ ...formData, totalPrice: e.target.value });
+                    }}
+                    className="pl-8 h-11 border-gray-300 focus:border-gray-500"
+                    placeholder="Auto-calculated from area × price/sqft"
+                  />
+                </div>
+                {!isTotalPriceManuallyEdited && formData.totalPrice && (
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    Auto-calculated: {parseFloat(formData.totalArea).toLocaleString('en-IN')} sqft × ₹{parseFloat(formData.pricePerSqFt).toLocaleString('en-IN')} = ₹{parseFloat(formData.totalPrice).toLocaleString('en-IN')}
+                  </p>
+                )}
+              </div>
+                {/* Negotiable Price */}
+              <div className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-black hover:bg-gray-50 transition-colors">
+                <Checkbox
+                  id="isPriceNegotiable"
+                  checked={formData.isPriceNegotiable}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isPriceNegotiable: checked as boolean })
+                  }
+                  className="data-[state=checked]:bg-black data-[state=checked]:border-black"
+                />
+                <div>
+                  <Label htmlFor="isPriceNegotiable" className="text-sm font-semibold cursor-pointer">
+                    Price is Negotiable
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-0.5">Check this if you're open to price discussions</p>
+                </div>
+              </div>
               </CardContent>
             </Card>
 
@@ -1052,21 +1121,44 @@ export default function WarehouseUploadForm() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="contactPhone" className="text-sm font-semibold">Mobile Number</Label>
-                  <Input
-                    id="contactPhone"
-                    type="tel"
-                    pattern="[0-9]{10}"
-                    maxLength={10}
-                    value={formData.contactPersonPhone}
-                    onChange={e => handleFieldChange('contactPersonPhone', e.target.value)}
-                    onBlur={() => handleFieldBlur('contactPersonPhone')}
-                    placeholder="+91 98765 43210"
-                    className={`h-11 ${errBorder('contactPersonPhone')}`}
-                  />
-                  <ErrMsg field="contactPersonPhone" />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Mobile Number */}
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone" className="text-sm font-semibold">Mobile Number</Label>
+                <Input
+                  id="contactPhone"
+                  type="tel"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                  value={formData.contactPersonPhone}
+                  onChange={e => handleFieldChange('contactPersonPhone', e.target.value)}
+                  onBlur={() => handleFieldBlur('contactPersonPhone')}
+                  placeholder="Mobile Number "
+                  className={`h-11 ${errBorder('contactPersonPhone')}`}
+                />
+                <ErrMsg field="contactPersonPhone" />
+              </div>
+
+              {/* Alternate Mobile Number */}
+              <div className="space-y-2">
+                <Label htmlFor="contactAlternatePhone" className="text-sm font-semibold">
+                  Alternate Mobile Number
+                  <span className="ml-1 text-xs font-normal text-gray-400">(Optional)</span>
+                </Label>
+                <Input
+                  id="contactAlternatePhone"
+                  type="tel"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                  value={formData.contactPersonAlternatePhone}
+                  onChange={e => handleFieldChange('contactPersonAlternatePhone', e.target.value)}
+                  onBlur={() => handleFieldBlur('contactPersonAlternatePhone')}
+                  placeholder="Alternate Mobile number"
+                  className={`h-11 ${errBorder('contactPersonAlternatePhone')}`}
+                />
+                <ErrMsg field="contactPersonAlternatePhone" />
+              </div>
+            </div>
               </CardContent>
             </Card>
           </div>

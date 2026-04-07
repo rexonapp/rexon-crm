@@ -18,10 +18,10 @@ console.log(warehouseId, "warehouseId")
     const result = await query(
       `SELECT id, property_name, title, description, property_type,
               space_available, space_unit, warehouse_size, available_from,
-              price_type, price_per_sqft,
+              price_type, price_per_sqft,total_price,
               address, city, state, pincode, road_connectivity,
-              contact_person_name, contact_person_phone, contact_person_email, contact_person_designation,
-              latitude, longitude, amenities,
+              contact_person_name, contact_person_phone,contact_person_alternate, contact_person_email, contact_person_designation,
+              latitude, longitude, amenities,is_price_negotiable,
               is_verified, is_featured, status, created_at, updated_at, state_code, property_code
        FROM warehouses
        WHERE id = $1 AND user_id = $2`,
@@ -127,7 +127,10 @@ export async function PATCH(
     const availableFrom = formData.get('availableFrom') as string;
     const listingType = formData.get('listingType') as string;
     const pricePerSqFt = formData.get('pricePerSqFt') as string;
-    const totalPrice = formData.get('totalPrice') as string || null;
+    const contactPersonAlternatePhone = formData.get('contactPersonAlternatePhone') as string || null;
+    const isPriceNegotiable           = formData.get('isPriceNegotiable') === 'true';
+    const totalPrice                  = formData.get('totalPrice') as string;
+    const totalPriceVal               = totalPrice ? parseFloat(totalPrice) : null;
     const address = formData.get('address') as string;
     const city = formData.get('city') as string;
     const state = formData.get('state') as string;
@@ -177,20 +180,28 @@ export async function PATCH(
       `UPDATE warehouses SET
         property_name = $1, title = $2, description = $3, property_type = $4,
         space_available = $5, space_unit = $6, warehouse_size = $7, available_from = $8,
-        price_type = $9, price_per_sqft = $10,
-        address = $11, city = $12, state = $13, pincode = $14, road_connectivity = $15,
-        contact_person_name = $16, contact_person_phone = $17, contact_person_email = $18,
-        contact_person_designation = $19, latitude = $20, longitude = $21,
-        amenities = $22, status = 'Pending', updated_at = NOW(), state_code = $25
-       WHERE id = $23 AND user_id = $24`,
+        price_type = $9, price_per_sqft = $10, total_price = $11,
+        address = $12, city = $13, state = $14, pincode = $15, road_connectivity = $16,
+        contact_person_name = $17, contact_person_phone = $18,
+        contact_person_alternate = $19,
+        contact_person_email = $20, contact_person_designation = $21,
+        latitude = $22, longitude = $23,
+        amenities = $24, is_price_negotiable = $25,
+        status = 'Pending', updated_at = NOW(), state_code = $26
+       WHERE id = $27 AND user_id = $28`,
       [
-        title, title, description, normalizedPropertyType,
-        parseFloat(totalArea), sizeUnit, parseFloat(totalArea), availableFrom,
-        priceType, parseFloat(pricePerSqFt),
-        address, city, state, pincode, normalizedRoadConnectivity,
-        contactPersonName, contactPersonPhone, contactPersonEmail, contactPersonDesignation,
-        latitude ? parseFloat(latitude) : null, longitude ? parseFloat(longitude) : null,
-        JSON.stringify(amenities), warehouseId, session.agentId, state_code
+        title, title, description, normalizedPropertyType,          // $1–$4
+        parseFloat(totalArea), sizeUnit, parseFloat(totalArea), availableFrom, // $5–$8
+        priceType, parseFloat(pricePerSqFt), totalPriceVal,         // $9–$11
+        address, city, state, pincode, normalizedRoadConnectivity,  // $12–$16
+        contactPersonName, contactPersonPhone,                       // $17–$18
+        contactPersonAlternatePhone,                                 // $19
+        contactPersonEmail, contactPersonDesignation,               // $20–$21
+        latitude ? parseFloat(latitude) : null,                     // $22
+        longitude ? parseFloat(longitude) : null,                   // $23
+        JSON.stringify(amenities), isPriceNegotiable,               // $24–$25
+        state_code,                                                  // $26
+        warehouseId, session.agentId,                               // $27–$28
       ]
     );
 

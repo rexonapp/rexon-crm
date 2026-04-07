@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Upload, X, CheckCircle, AlertCircle, MapPin, Building2, User,
@@ -57,6 +57,8 @@ interface WarehouseFormData {
   roadConnectivity: string;
   contactPersonName: string;
   contactPersonPhone: string;
+  contactPersonAlternatePhone: string;  
+  isPriceNegotiable: boolean;  
   contactPersonEmail: string;
   latitude: string;
   longitude: string;
@@ -77,6 +79,7 @@ interface FieldErrors {
   };
   pincode?: string;
   contactPersonPhone?: string;
+  contactPersonAlternatePhone?: string;  
   contactPersonEmail?: string;
   images?: string;
 }
@@ -205,6 +208,8 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const [fieldErrors, setFieldErrors]       = useState<FieldErrors>({});
   const [touchedFields, setTouchedFields]   = useState<Set<string>>(new Set());
   const [stateOpen, setStateOpen] = useState(false);
+  const [isTotalPriceManuallyEdited, setIsTotalPriceManuallyEdited] = useState(false);
+
 
   const availableFromFormatted = initialData.available_from
     ? new Date(initialData.available_from).toISOString().split('T')[0]
@@ -235,6 +240,8 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
     roadConnectivity:         initialData.road_connectivity || '',
     contactPersonName:        initialData.contact_person_name || '',
     contactPersonPhone:       initialData.contact_person_phone || '',
+    contactPersonAlternatePhone: initialData.contact_person_alternate || '',
+   isPriceNegotiable:           initialData.is_price_negotiable || false,
     contactPersonEmail:       initialData.contact_person_email || '',
     latitude:                 initialData.latitude?.toString() || '',
     longitude:                initialData.longitude?.toString() || '',
@@ -270,6 +277,10 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
       case 'pincode':
         if (value && (!/^\d+$/.test(value) || value.length !== 6)) return 'Must be exactly 6 digits';
         break;
+      case 'contactPersonAlternatePhone':
+          if (value && !/^[6-9]\d{9}$/.test(value.replace(/\s/g, '')))
+            return 'Enter a valid 10-digit mobile number';
+          break;
       case 'contactPersonPhone':
         if (value && !/^[6-9]\d{9}$/.test(value.replace(/\s/g, '')))
           return 'Enter a valid 10-digit mobile number';
@@ -428,6 +439,16 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
       setUploadProgress(0);
     }
   };
+  useEffect(() => {
+    if (isTotalPriceManuallyEdited) return;
+    const area = parseFloat(formData.totalArea);
+    const price = parseFloat(formData.pricePerSqFt);
+    if (!isNaN(area) && !isNaN(price) && area > 0 && price > 0) {
+      setFormData(prev => ({ ...prev, totalPrice: (area * price).toFixed(2) }));
+    } else {
+      setFormData(prev => ({ ...prev, totalPrice: '' }));
+    }
+  }, [formData.totalArea, formData.pricePerSqFt, isTotalPriceManuallyEdited]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -512,7 +533,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                   <div className="space-y-1.5">
                     <Label htmlFor="totalArea" className="text-[12.5px] font-medium text-muted-foreground">Total Area<Req /></Label>
                     <div className="flex gap-2">
-                      <Input id="totalArea" type="number" min="0" value={formData.totalArea}
+                      <Input id="totalArea"  min="0" value={formData.totalArea}
                         onChange={e => handleFieldChange('totalArea', e.target.value)}
                         onBlur={() => handleFieldBlur('totalArea')}
                         placeholder="0"
@@ -571,7 +592,6 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="pricePerSqFt" className="text-[12.5px] font-medium text-muted-foreground">Price per Sq.ft<Req /></Label>
                     <div className="relative">
@@ -587,15 +607,58 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="totalPrice" className="text-[12.5px] font-medium text-muted-foreground">Total Price</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">₹</span>
-                      <Input id="totalPrice" type="number" min="0" value={formData.totalPrice}
-                        onChange={e => setFormData(p => ({ ...p, totalPrice: e.target.value }))}
-                        className="h-9 pl-7 text-[13.5px]" placeholder="0.00"
-                      />
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="totalPrice" className="text-[12.5px] font-medium text-muted-foreground">
+                      Total Price
+                    </Label>
+                    {isTotalPriceManuallyEdited && formData.totalArea && formData.pricePerSqFt && (
+                      <button
+                        type="button"
+                        onClick={() => setIsTotalPriceManuallyEdited(false)}
+                        className="text-[11px] text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                      >
+                        Reset to calculated
+                      </button>
+                    )}
                   </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">₹</span>
+                    <Input
+                      id="totalPrice"
+                      type="number"
+                      min="0"
+                      value={formData.totalPrice}
+                      onChange={e => {
+                        setIsTotalPriceManuallyEdited(true);
+                        setFormData(p => ({ ...p, totalPrice: e.target.value }));
+                      }}
+                      className="h-9 pl-7 text-[13.5px]"
+                      placeholder="Auto-calculated from area × price/sqft"
+                    />
+                  </div>
+                  {!isTotalPriceManuallyEdited && formData.totalPrice && (
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                      {parseFloat(formData.totalArea).toLocaleString('en-IN')} {formData.sizeUnit} × ₹{parseFloat(formData.pricePerSqFt).toLocaleString('en-IN')} = ₹{parseFloat(formData.totalPrice).toLocaleString('en-IN')}
+                    </p>
+                  )}
+                  {/* Negotiable Price */}
+                <div className="flex items-center space-x-3 p-3 rounded-md border border-border hover:border-foreground/20 hover:bg-accent/50 transition-colors">
+                  <Checkbox
+                    id="isPriceNegotiable"
+                    checked={formData.isPriceNegotiable}
+                    onCheckedChange={(checked) =>
+                      setFormData(p => ({ ...p, isPriceNegotiable: checked as boolean }))
+                    }
+                    className="shrink-0"
+                  />
+                  <div>
+                    <Label htmlFor="isPriceNegotiable" className="text-[13px] font-medium cursor-pointer">
+                      Price is Negotiable
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Check if you're open to price discussions</p>
+                  </div>
+                </div>
                 </div>
               </CardContent>
             </Card>
@@ -838,39 +901,51 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                 <SectionHeader icon={User} title="Contact Information" />
               </CardHeader>
               <CardContent className="px-5 pt-5 pb-5 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contactName" className="text-[12.5px] font-medium text-muted-foreground">Full Name</Label>
-                    <Input id="contactName" value={formData.contactPersonName}
-                      onChange={e => setFormData(p => ({ ...p, contactPersonName: e.target.value }))}
-                      placeholder="Contact person name" className="h-9 text-[13.5px]"
-                    />
-                  </div>
-                
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="contactName" className="text-[12.5px] font-medium text-muted-foreground">Full Name</Label>
+                <Input id="contactName" value={formData.contactPersonName}
+                  onChange={e => setFormData(p => ({ ...p, contactPersonName: e.target.value }))}
+                  placeholder="Contact person name" className="h-9 text-[13.5px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="contactEmail" className="text-[12.5px] font-medium text-muted-foreground">Email Address</Label>
+                <Input id="contactEmail" type="email" value={formData.contactPersonEmail}
+                  onChange={e => handleFieldChange('contactPersonEmail', e.target.value)}
+                  onBlur={() => handleFieldBlur('contactPersonEmail')}
+                  placeholder="email@example.com"
+                  className={cn('h-9 text-[13.5px]', touchedFields.has('contactPersonEmail') && fieldErrors.contactPersonEmail && 'border-destructive')}
+                />
+                {touchedFields.has('contactPersonEmail') && <FieldError message={fieldErrors.contactPersonEmail} />}
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contactPhone" className="text-[12.5px] font-medium text-muted-foreground">Mobile Number</Label>
-                    <Input id="contactPhone" type="tel" maxLength={10} value={formData.contactPersonPhone}
-                      onChange={e => handleFieldChange('contactPersonPhone', e.target.value)}
-                      onBlur={() => handleFieldBlur('contactPersonPhone')}
-                      placeholder="9876543210"
-                      className={cn('h-9 text-[13.5px]', touchedFields.has('contactPersonPhone') && fieldErrors.contactPersonPhone && 'border-destructive')}
-                    />
-                    {touchedFields.has('contactPersonPhone') && <FieldError message={fieldErrors.contactPersonPhone} />}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contactEmail" className="text-[12.5px] font-medium text-muted-foreground">Email Address</Label>
-                    <Input id="contactEmail" type="email" value={formData.contactPersonEmail}
-                      onChange={e => handleFieldChange('contactPersonEmail', e.target.value)}
-                      onBlur={() => handleFieldBlur('contactPersonEmail')}
-                      placeholder="email@example.com"
-                      className={cn('h-9 text-[13.5px]', touchedFields.has('contactPersonEmail') && fieldErrors.contactPersonEmail && 'border-destructive')}
-                    />
-                    {touchedFields.has('contactPersonEmail') && <FieldError message={fieldErrors.contactPersonEmail} />}
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="contactPhone" className="text-[12.5px] font-medium text-muted-foreground">Mobile Number</Label>
+                <Input id="contactPhone" type="tel" maxLength={10} value={formData.contactPersonPhone}
+                  onChange={e => handleFieldChange('contactPersonPhone', e.target.value)}
+                  onBlur={() => handleFieldBlur('contactPersonPhone')}
+                  placeholder="Phone number"
+                  className={cn('h-9 text-[13.5px]', touchedFields.has('contactPersonPhone') && fieldErrors.contactPersonPhone && 'border-destructive')}
+                />
+                {touchedFields.has('contactPersonPhone') && <FieldError message={fieldErrors.contactPersonPhone} />}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="contactAlternatePhone" className="text-[12.5px] font-medium text-muted-foreground">
+                  Alternate Mobile
+                  <span className="ml-1 text-[11px] font-normal text-muted-foreground/60">(Optional)</span>
+                </Label>
+                <Input id="contactAlternatePhone" type="tel" maxLength={10} value={formData.contactPersonAlternatePhone}
+                  onChange={e => handleFieldChange('contactPersonAlternatePhone', e.target.value)}
+                  onBlur={() => handleFieldBlur('contactPersonAlternatePhone')}
+                  placeholder="Alternate phone number"
+                  className={cn('h-9 text-[13.5px]', touchedFields.has('contactPersonAlternatePhone') && fieldErrors.contactPersonAlternatePhone && 'border-destructive')}
+                />
+                {touchedFields.has('contactPersonAlternatePhone') && <FieldError message={fieldErrors.contactPersonAlternatePhone} />}
+              </div>
+            </div>
               </CardContent>
             </Card>
           </div>

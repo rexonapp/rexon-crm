@@ -187,6 +187,8 @@ export async function POST(request: NextRequest) {
     const longitude                = fields['longitude'] ?? null;
     const contactPersonName        = fields['contactPersonName'] ?? '';
     const contactPersonPhone       = fields['contactPersonPhone'] ?? '';
+    const contactPersonAlternatePhone = fields['contactPersonAlternatePhone'] ?? null;
+    const isPriceNegotiable           = fields['isPriceNegotiable'] === 'true';
     const contactPersonEmail       = fields['contactPersonEmail'] ?? '';
     const contactPersonDesignation = fields['contactPersonDesignation'] ?? '';
     const amenitiesStr             = fields['amenities'] ?? '[]';
@@ -270,28 +272,49 @@ export async function POST(request: NextRequest) {
       const initialStatus = autoApproveListings ? 'Active' : 'Pending';
       console.log(initialStatus,'inital status')
 
-    const warehouseResult = await query(
-      `INSERT INTO warehouses 
-       (user_id, property_name, title, description, property_type, 
-        space_available, space_unit, warehouse_size, available_from,
-        price_type, price_per_sqft, 
-        address, city, state, pincode, road_connectivity,
-        contact_person_name, contact_person_phone, contact_person_email, contact_person_designation,
-        latitude, longitude, amenities, status, state_code)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
-       RETURNING id, property_name, title, address, city, created_at`,
-      [
-        userId, title, title, description, normalizedPropertyType,
-        parseFloat(totalArea), sizeUnit, parseFloat(totalArea), availableFrom,
-        priceType, parseFloat(pricePerSqFt),
-        address, city, state, pincode, normalizedRoadConnectivity,
-        contactPersonName, contactPersonPhone, contactPersonEmail, contactPersonDesignation,
-        latitude  ? parseFloat(latitude)  : null,
-        longitude ? parseFloat(longitude) : null,
-        JSON.stringify(amenities),
-        initialStatus, state_code
-      ]
-    );
+      const warehouseResult = await query(
+        `INSERT INTO warehouses 
+         (user_id, property_name, title, description, property_type,
+          space_available, space_unit, warehouse_size, available_from,
+          price_type, price_per_sqft, total_price,
+          address, city, state, pincode, road_connectivity,
+          contact_person_name, contact_person_phone, contact_person_alternate,
+          contact_person_email, contact_person_designation,
+          latitude, longitude, amenities, status, state_code,
+          is_price_negotiable)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+         RETURNING id, property_name, title, address, city, created_at`,
+        [
+          userId,                          // $1
+          title,                           // $2  property_name
+          title,                           // $3  title
+          description,                     // $4
+          normalizedPropertyType,          // $5
+          parseFloat(totalArea),           // $6  space_available
+          sizeUnit,                        // $7  space_unit
+          parseFloat(totalArea),           // $8  warehouse_size
+          availableFrom,                   // $9
+          priceType,                       // $10
+          parseFloat(pricePerSqFt),        // $11
+          totalPrice,                      // $12  total_price (already parsed as float or null)
+          address,                         // $13
+          city,                            // $14
+          state,                           // $15
+          pincode || null,                 // $16
+          normalizedRoadConnectivity,      // $17
+          contactPersonName,               // $18
+          contactPersonPhone,              // $19
+          contactPersonAlternatePhone,     // $20
+          contactPersonEmail,              // $21
+          contactPersonDesignation,        // $22
+          latitude  ? parseFloat(latitude)  : null,  // $23
+          longitude ? parseFloat(longitude) : null,  // $24
+          JSON.stringify(amenities),       // $25
+          initialStatus,                   // $26
+          state_code,                      // $27
+          isPriceNegotiable,               // $28
+        ]
+      );
 
     const warehouseId = warehouseResult.rows[0].id;
     const agentNameResult = await query(
@@ -376,9 +399,9 @@ export async function GET(request: NextRequest) {
     const warehousesResult = await query(
       `SELECT id, property_name, title, description, property_type,
               space_available, space_unit, warehouse_size, available_from,
-              price_type, price_per_sqft,
+              price_type, price_per_sqft,total_price
               address, city, state, pincode, road_connectivity,
-              contact_person_name, contact_person_phone, contact_person_email, contact_person_designation,
+              contact_person_name, contact_person_phone,contact_person_alternate, contact_person_email, contact_person_designation,
               latitude, longitude, amenities,
               is_verified, is_featured, status, created_at, updated_at, state_code
        FROM warehouses
