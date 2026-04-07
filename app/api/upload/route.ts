@@ -244,16 +244,16 @@ export async function POST(request: NextRequest) {
     const priceType = listingType === 'rent' ? 'Rent' : listingType === 'sale' ? 'Sale' : 'Lease';
 
     const propertyTypeMap: Record<string, string> = {
-      'Warehouse':           'Warehouse',
-      'Cold Storage':        'Warehouse',
-      'Godown':              'Warehouse',
-      'Industrial Shed':     'Industrial',
-      'Manufacturing Unit':  'Industrial',
-      'Factory Space':       'Industrial',
-      'Logistics Hub':       'Commercial',
-      'Distribution Center': 'Commercial',
+      'warehouse':           'Warehouse',
+      'cold_storage':        'Cold Storage',
+      'industrial_shed':     'Industrial Shed',
+      'manufacturing_unit':  'Manufacturing Unit',
+      'godown':              'Godown',
+      'factory_space':       'Factory Space',
+      'logistics_hub':       'Logistics Hub'  ,
+      'distribution_center': 'Distribution Center',
     };
-    const normalizedPropertyType = propertyTypeMap[propertyType] || 'Warehouse';
+    const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
 
     const roadConnectivityMap: Record<string, string> = {
       'National Highway': 'National Highway',

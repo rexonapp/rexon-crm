@@ -158,11 +158,16 @@ export async function PATCH(
 
     // Map property type
     const propertyTypeMap: Record<string, string> = {
-      'Warehouse': 'Warehouse', 'Cold Storage': 'Warehouse', 'Godown': 'Warehouse',
-      'Industrial Shed': 'Industrial', 'Manufacturing Unit': 'Industrial', 'Factory Space': 'Industrial',
-      'Logistics Hub': 'Commercial', 'Distribution Center': 'Commercial',
+      'Warehouse':            'Warehouse',
+      'Cold Storage':         'Cold Storage',
+      'Industrial Shed':      'Industrial Shed',
+      'Manufacturing Unit':   'Manufacturing Unit',
+      'Godown':               'Godown',
+      'Factory Space':        'Factory Space',
+      'Logistics Hub':        'Logistics Hub',
+      'Distribution Center':  'Distribution Center',
     };
-    const normalizedPropertyType = propertyTypeMap[propertyType] || 'Warehouse';
+    const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
 
     const roadConnectivityMap: Record<string, string> = {
       'National Highway': 'National Highway', 'State Highway': 'State Highway',
@@ -175,7 +180,6 @@ export async function PATCH(
 
     const priceType = listingType === 'rent' ? 'Rent' : listingType === 'sale' ? 'Sale' : 'Lease';
 
-    // Update warehouse record
     await query(
       `UPDATE warehouses SET
         property_name = $1, title = $2, description = $3, property_type = $4,

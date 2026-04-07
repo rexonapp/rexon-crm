@@ -141,7 +141,14 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
 const PROPERTY_TYPE_REVERSE: Record<string, string> = {
-  'Warehouse': 'Warehouse', 'Industrial': 'Industrial Shed', 'Commercial': 'Logistics Hub',
+  'Warehouse':            'Warehouse',
+  'Cold Storage':         'Cold Storage',
+  'Industrial Shed':      'Industrial Shed',
+  'Manufacturing Unit':   'Manufacturing Unit',
+  'Godown':               'Godown',
+  'Factory Space':        'Factory Space',
+  'Logistics Hub':        'Logistics Hub',
+  'Distribution Center':  'Distribution Center',
 };
 const PRICE_TYPE_REVERSE: Record<string, 'sale' | 'rent' | 'lease'> = {
   'Rent': 'rent', 'Sale': 'sale', 'Lease': 'lease',
@@ -221,9 +228,9 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   const [formData, setFormData] = useState<WarehouseFormData>({
     title: initialData.title || '',
     description:              initialData.description || '',
-    propertyType:             initialData.property_type
-      ? (Object.entries(PROPERTY_TYPE_REVERSE).find(([, v]) => v === initialData.property_type)?.[0] || initialData.property_type)
-      : '',
+    propertyType: initialData.property_type
+  ? (PROPERTY_TYPE_REVERSE[initialData.property_type] || initialData.property_type)
+  : '',
     totalArea:                initialData.space_available?.toString() || initialData.warehouse_size?.toString() || '',
     sizeUnit:                 (initialData.space_unit as 'sqft' | 'sqm') || 'sqft',
     availableFrom:            availableFromFormatted,
