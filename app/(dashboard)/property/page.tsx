@@ -106,8 +106,8 @@ function StatCard({
             <p className="text-3xl font-bold text-foreground leading-none">{value}</p>
             <p className="text-[12px] text-muted-foreground">{sub}</p>
           </div>
-          <div className="w-9 h-9 rounded-md bg-accent flex items-center justify-center shrink-0">
-            <Icon className="w-[18px] h-[18px] text-muted-foreground" />
+          <div className="w-9 h-9 rounded-md bg-brand-secondary/15 flex items-center justify-center shrink-0">
+            <Icon className="w-[18px] h-[18px] text-brand-secondary" />
           </div>
         </div>
       </CardContent>

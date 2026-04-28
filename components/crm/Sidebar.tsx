@@ -99,16 +99,16 @@ function NavItem({
       className={cn(
         "group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[14.5px] font-medium leading-none tracking-[-0.01em] transition-colors duration-100 select-none",
         active
-          ? "bg-accent text-accent-foreground"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+          ? "bg-brand-secondary/15 text-brand-secondary"
+          : "text-muted-foreground hover:text-brand-icon-primary hover:bg-brand-secondary/5"
       )}
     >
       <Icon
         className={cn(
           "w-[18px] h-[18px] shrink-0",
           active
-            ? "text-foreground"
-            : "text-muted-foreground group-hover:text-foreground transition-colors"
+            ? "text-brand-secondary"
+            : "text-brand-icon-primary group-hover:text-brand-secondary transition-colors"
         )}
       />
       <span className="flex-1">{label}</span>
@@ -117,8 +117,8 @@ function NavItem({
           className={cn(
             "flex items-center justify-center min-w-[20px] h-5 rounded px-1.5 text-[11px] font-semibold leading-none",
             active
-              ? "bg-foreground/10 text-foreground"
-              : "bg-muted text-muted-foreground"
+              ? "bg-brand-secondary/20 text-brand-secondary"
+              : "bg-brand-secondary/10 text-brand-secondary"
           )}
         >
           {badge}
@@ -215,7 +215,7 @@ export default function Sidebar({
         {/* Close button — mobile only */}
         <button
           onClick={onClose}
-          className="lg:hidden p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          className="lg:hidden p-1.5 rounded-md hover:bg-brand-secondary/10 text-brand-icon-primary hover:text-brand-secondary transition-colors"
         >
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="w-5 h-5">
             <path d="M5 5l10 10M15 5L5 15" />
@@ -251,17 +251,17 @@ export default function Sidebar({
       <div className="p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-accent transition-colors text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-brand-secondary/10 transition-colors text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary">
               {/* ✅ Avatar — reflects updated URL immediately */}
               {agent?.profile_photo_s3_url ? (
                 <img
                   src={agent.profile_photo_s3_url}
                   alt={agent.full_name}
-                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-border"
+                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-brand-secondary/30"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
-                  <span className="text-[11px] font-bold text-background">{initials}</span>
+                <div className="w-8 h-8 rounded-full bg-brand-secondary flex items-center justify-center shrink-0">
+                  <span className="text-[11px] font-bold text-white">{initials}</span>
                 </div>
               )}
 
@@ -273,7 +273,7 @@ export default function Sidebar({
                   {agent?.email ?? ""}
                 </div>
               </div>
-              <ChevronUpIcon className="w-4 h-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ChevronUpIcon className="w-4 h-4 text-brand-icon-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           </DropdownMenuTrigger>
 

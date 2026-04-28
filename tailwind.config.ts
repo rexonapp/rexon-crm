@@ -39,6 +39,16 @@ const config: Config = {
           muted: "var(--gold-muted)",
           dim: "var(--gold-dim)",
         },
+        brand: {
+          primary: "var(--brand-primary)",
+          "primary-hover": "var(--brand-primary-hover)",
+          secondary: "var(--brand-secondary)",
+          "secondary-hover": "var(--brand-secondary-hover)",
+          "icon-primary": "var(--brand-icon-primary)",
+          "icon-secondary": "var(--brand-icon-secondary)",
+          "border-secondary": "var(--brand-border-secondary)",
+          "border-primary": "var(--brand-border-primary)",
+        },
       },
       borderRadius: {
         lg: "var(--r-lg)",

@@ -24,8 +24,8 @@ import Link from "next/link";
 function RexonLogo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-foreground rounded-lg flex items-center justify-center">
-        <span className="text-[16px] font-extrabold text-background tracking-tight">
+      <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center">
+        <span className="text-[16px] font-extrabold text-white tracking-tight">
           R
         </span>
       </div>
@@ -333,7 +333,7 @@ function ResetPasswordForm() {
         <Button
           type="submit"
           disabled={loading || !isValid}
-          className="w-full h-10 text-[13px] font-semibold rounded-lg bg-foreground hover:bg-foreground/90 active:bg-foreground/80 text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-10 text-[13px] font-semibold rounded-lg"
         >
           {loading ? (
             <>

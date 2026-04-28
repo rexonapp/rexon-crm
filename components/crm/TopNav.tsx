@@ -116,7 +116,7 @@ function NavIconBtn({
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className={cn("w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg shrink-0", className)}
+      className={cn("w-9 h-9 text-brand-icon-primary hover:text-brand-icon-secondary hover:bg-blue-50 rounded-lg shrink-0", className)}
     >
       {children}
     </Button>

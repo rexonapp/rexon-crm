@@ -43,6 +43,32 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-brand-primary: var(--brand-primary);
+    --color-brand-primary-hover: var(--brand-primary-hover);
+    --color-brand-secondary: var(--brand-secondary);
+    --color-brand-secondary-hover: var(--brand-secondary-hover);
+    --color-brand-icon-primary: var(--brand-icon-primary);
+    --color-brand-icon-secondary: var(--brand-icon-secondary);
+    --color-brand-border-secondary: var(--brand-border-secondary);
+    --color-brand-border-primary: var(--brand-border-primary);
+}
+
+@layer utilities {
+  .bg-brand-primary { background-color: var(--brand-primary); }
+  .hover\:bg-brand-primary-hover:hover { background-color: var(--brand-primary-hover); }
+  .bg-brand-secondary { background-color: var(--brand-secondary); }
+  .hover\:bg-brand-secondary-hover:hover { background-color: var(--brand-secondary-hover); }
+  .bg-brand-secondary\/5 { background-color: rgb(19 168 180 / 0.05); }
+  .bg-brand-secondary\/10 { background-color: rgb(19 168 180 / 0.1); }
+  .bg-brand-secondary\/15 { background-color: rgb(19 168 180 / 0.15); }
+  .bg-brand-secondary\/20 { background-color: rgb(19 168 180 / 0.2); }
+  .text-brand-secondary { color: var(--brand-secondary); }
+  .text-brand-icon-primary { color: var(--brand-icon-primary); }
+  .text-brand-icon-secondary { color: var(--brand-icon-secondary); }
+  .border-brand-secondary { border-color: var(--brand-border-secondary); }
+  .border-brand-primary { border-color: var(--brand-border-primary); }
+  .ring-brand-secondary { --tw-ring-color: var(--brand-secondary); }
+  .focus-visible\:ring-brand-secondary:focus-visible { --tw-ring-color: var(--brand-secondary); }
 }
 
 :root {
@@ -106,6 +132,17 @@
     --shadow-gold: 0 4px 20px rgba(201,168,76,0.25);
     --sidebar-w: 240px;
     --nav-h: 64px;
+
+    /* Brand Colors */
+    --brand-primary: #d07648;
+    --brand-primary-hover: #c46b3f;
+    --brand-secondary: #13a8b4;
+    --brand-secondary-hover: #0b6f78;
+    --brand-icon-primary: #0f8a94;
+    --brand-icon-secondary: #d07648;
+    --brand-border-secondary: rgb(19 168 180 / 0.25);
+    --brand-border-primary: rgb(208 118 72 / 0.2);
+    --brand-gradient: linear-gradient(135deg, #13a8b4 0%, #d07648 50%, #13a8b4 100%);
 }
 
 .dark {

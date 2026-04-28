@@ -291,7 +291,7 @@ export default function ChangePasswordPage() {
           <Button
             type="submit"
             disabled={loading || !isValid}
-            className="w-full h-10 text-[13px] font-semibold rounded-lg bg-foreground hover:bg-foreground/90 active:bg-foreground/80 text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-10 text-[13px] font-semibold rounded-lg"
           >
             {loading ? (
               <>
