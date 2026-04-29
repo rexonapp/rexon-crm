@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 
 // Vercel timeout — increase for large file uploads
 // NOTE: Vercel Pro allows up to 900 seconds; standard is 60 seconds
-export const maxDuration = 900;
+export const maxDuration = 300;
 
 // ── Shared constants ─────────────────────────────────────────────────────────
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024;     // 20 MB
