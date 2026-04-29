@@ -622,7 +622,7 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
                       <button
                         type="button"
                         onClick={() => setIsTotalPriceManuallyEdited(false)}
-                        className="text-[11px] text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                        className="text-[11px] text-brand-icon-primary hover:text-brand-orange-text-hover underline underline-offset-2"
                       >
                         Reset to calculated
                       </button>

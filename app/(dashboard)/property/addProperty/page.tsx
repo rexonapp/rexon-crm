@@ -511,8 +511,8 @@ export default function WarehouseUploadForm() {
   // Helper: error border class
   const errBorder = (field: keyof FieldErrors) =>
     touchedFields.has(field) && fieldErrors[field]
-      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-      : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500';
+      ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-1 focus-visible:ring-red-500'
+      : 'border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary';
 
   // Helper: inline error message
   const ErrMsg = ({ field }: { field: keyof FieldErrors }) => {
@@ -540,27 +540,27 @@ export default function WarehouseUploadForm() {
   }, [formData.totalArea, formData.pricePerSqFt, isTotalPriceManuallyEdited]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 sm:py-10 py-2 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-brand-secondary/[0.06] via-background to-muted/30 sm:py-10 py-2 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center text-sm text-gray-500 mb-4">
+          <div className="flex items-center text-sm text-muted-foreground mb-4">
             <span>Home</span><span className="mx-2">/</span>
             <span>My Listings</span><span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Add New Property</span>
+            <span className="text-foreground font-medium">Add New Property</span>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Add New Property</h1>
-          <p className="text-gray-600">Fill in the mandatory details below to list your property on Rexon. Adding high-quality photos and videos increases visibility.</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Add New Property</h1>
+          <p className="text-muted-foreground">Fill in the mandatory details below to list your property on Rexon. Adding high-quality photos and videos increases visibility.</p>
         </div>
 
         {uploading && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
+          <Card className="mb-6 border-brand-secondary/35 bg-brand-secondary/10">
             <CardContent className="pt-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium text-blue-900">Uploading property...</span>
-                  <span className="text-blue-700">{uploadProgress}%</span>
+                  <span className="font-medium text-brand-blue-deep">Uploading property...</span>
+                  <span className="text-brand-icon-primary font-semibold">{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
               </div>
@@ -577,7 +577,7 @@ export default function WarehouseUploadForm() {
             <Card className="shadow-md hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center mr-3">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Basic Information</CardTitle>
@@ -642,7 +642,7 @@ export default function WarehouseUploadForm() {
                         className={`flex-1 ${errBorder('totalArea')}`}
                       />
                       <Select value={formData.sizeUnit} onValueChange={(v: 'sqft' | 'sqm') => setFormData({ ...formData, sizeUnit: v })}>
-                        <SelectTrigger className="w-28 h-11 border-gray-300">
+                        <SelectTrigger className="w-28 h-11 border-input">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -664,7 +664,7 @@ export default function WarehouseUploadForm() {
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
                     placeholder="Provide a detailed description of your property..."
-                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 resize-none"
+                    className="border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary resize-none"
                   />
                 </div>
               </CardContent>
@@ -674,7 +674,7 @@ export default function WarehouseUploadForm() {
             <Card className="shadow-md hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center mr-3">
                     <IndianRupee className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Availability & Pricing</CardTitle>
@@ -705,7 +705,7 @@ export default function WarehouseUploadForm() {
                       Listing Type <span className="text-red-500">*</span>
                     </Label>
                     <Select value={formData.listingType} onValueChange={(v: 'sale' | 'rent') => setFormData({ ...formData, listingType: v })}>
-                      <SelectTrigger id="listingType" className="h-11 w-full border-gray-300">
+                      <SelectTrigger id="listingType" className="h-11 w-full border-input">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="max-w-[calc(100vw-2rem)]">
@@ -723,7 +723,7 @@ export default function WarehouseUploadForm() {
                     Price per Sq.ft <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
                     <Input
                       id="pricePerSqFt"
                       type="number"
@@ -743,7 +743,7 @@ export default function WarehouseUploadForm() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="totalPrice" className="text-sm font-semibold">
                     Total Price
-                    <span className="ml-2 text-xs font-normal text-gray-400">(Optional)</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">(Optional)</span>
                   </Label>
                   {isTotalPriceManuallyEdited && formData.totalArea && formData.pricePerSqFt && (
                     <button
@@ -751,14 +751,14 @@ export default function WarehouseUploadForm() {
                       onClick={() => {
                         setIsTotalPriceManuallyEdited(false);
                       }}
-                      className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                      className="text-xs text-brand-icon-primary hover:text-brand-orange-text-hover underline underline-offset-2"
                     >
                       Reset to calculated
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
                   <Input
                     id="totalPrice"
                     type="number"
@@ -768,32 +768,32 @@ export default function WarehouseUploadForm() {
                       setIsTotalPriceManuallyEdited(true);
                       setFormData({ ...formData, totalPrice: e.target.value });
                     }}
-                    className="pl-8 h-11 border-gray-300 focus:border-gray-500"
+                    className="pl-8 h-11 border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary"
                     placeholder="Auto-calculated from area × price/sqft"
                   />
                 </div>
                 {!isTotalPriceManuallyEdited && formData.totalPrice && (
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-green-500" />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-brand-icon-primary" />
                     Auto-calculated: {parseFloat(formData.totalArea).toLocaleString('en-IN')} sqft × ₹{parseFloat(formData.pricePerSqFt).toLocaleString('en-IN')} = ₹{parseFloat(formData.totalPrice).toLocaleString('en-IN')}
                   </p>
                 )}
               </div>
                 {/* Negotiable Price */}
-              <div className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-black hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3 p-4 rounded-lg border border-border hover:border-brand-secondary/40 hover:bg-brand-secondary/5 transition-colors">
                 <Checkbox
                   id="isPriceNegotiable"
                   checked={formData.isPriceNegotiable}
                   onCheckedChange={(checked) =>
                     setFormData({ ...formData, isPriceNegotiable: checked as boolean })
                   }
-                  className="data-[state=checked]:bg-black data-[state=checked]:border-black"
+                  className="data-[state=checked]:bg-brand-secondary data-[state=checked]:border-brand-secondary"
                 />
                 <div>
                   <Label htmlFor="isPriceNegotiable" className="text-sm font-semibold cursor-pointer">
                     Price is Negotiable
                   </Label>
-                  <p className="text-xs text-gray-500 mt-0.5">Check this if you're open to price discussions</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Check this if you're open to price discussions</p>
                 </div>
               </div>
               </CardContent>
@@ -803,7 +803,7 @@ export default function WarehouseUploadForm() {
             <Card className="shadow-md hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center mr-3">
                     <MapPin className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Location Details</CardTitle>
@@ -890,7 +890,7 @@ export default function WarehouseUploadForm() {
                         {filteredCities.map((c) => (
                           <div
                             key={c.id}
-                            className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                            className="px-3 py-2 cursor-pointer hover:bg-brand-secondary/10"
                             onMouseDown={() => {
                               handleFieldChange('city', c.city);
                               handleFieldChange('latitude', c.latitude);
@@ -924,7 +924,7 @@ export default function WarehouseUploadForm() {
                             !formData.state.name && 'text-muted-foreground',
                             touchedFields.has('state') && fieldErrors.state?.name
                               ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                              : 'border-gray-300 focus:border-gray-500 focus:ring-gray-500'
+                              : 'border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary'
                           )}
                         >
                           {formData.state.name || 'Select state'}
@@ -991,7 +991,7 @@ export default function WarehouseUploadForm() {
                   <div className="space-y-2 w-full">
                     <Label htmlFor="roadConnectivity" className="text-sm font-semibold">Road Connectivity</Label>
                     <Select value={formData.roadConnectivity} onValueChange={v => setFormData({ ...formData, roadConnectivity: v })}>
-                      <SelectTrigger id="roadConnectivity" className="h-11 w-full border-gray-300">
+                      <SelectTrigger id="roadConnectivity" className="h-11 w-full border-input">
                         <SelectValue placeholder="Select road type..." />
                       </SelectTrigger>
                       <SelectContent side="bottom" align="start" className="max-w-[calc(100vw-2rem)]">
@@ -1012,7 +1012,7 @@ export default function WarehouseUploadForm() {
                       value={formData.latitude}
                       onChange={e => setFormData({ ...formData, latitude: e.target.value })}
                       placeholder="19.0760"
-                      className="h-11 border-gray-300 focus:border-gray-500"
+                      className="h-11 border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1022,19 +1022,19 @@ export default function WarehouseUploadForm() {
                       value={formData.longitude}
                       onChange={e => setFormData({ ...formData, longitude: e.target.value })}
                       placeholder="72.8777"
-                      className="h-11 border-gray-300 focus:border-gray-500"
+                      className="h-11 border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary"
                     />
                   </div>
                 </div>
 
                 {/* Map toggle */}
                 <div className="pt-2">
-                  <Button type="button" onClick={() => setShowMap(!showMap)} className="bg-black hover:bg-gray-800 h-11">
+                  <Button type="button" onClick={() => setShowMap(!showMap)} className="bg-brand-secondary hover:bg-brand-secondary-hover h-11 text-white">
                     <MapPin className="h-4 w-4 mr-2" />
                     {showMap ? 'Hide Map' : 'Select Location on Map'}
                   </Button>
                   {showMap && (
-                    <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                    <div className="mt-4 p-4 border border-border rounded-lg bg-muted/40">
                       <MapSelector
                         latitude={formData.latitude}
                         longitude={formData.longitude}
@@ -1054,12 +1054,12 @@ export default function WarehouseUploadForm() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center mr-3">
                       <Building2 className="h-5 w-5 text-white" />
                     </div>
                     <CardTitle>Features & Amenities</CardTitle>
                   </div>
-                  <Badge variant="secondary" className="bg-gray-200">Optional</Badge>
+                  <Badge variant="secondary" className="bg-brand-secondary/15 text-brand-blue-deep border-0">Optional</Badge>
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
@@ -1067,12 +1067,12 @@ export default function WarehouseUploadForm() {
                   <Label className="text-sm font-semibold">Select Amenities</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
                     {AMENITIES.map(amenity => (
-                      <div key={amenity} className="flex items-center space-x-2 p-3 rounded-lg border border-gray-200 hover:border-black hover:bg-gray-50 transition-colors">
+                      <div key={amenity} className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-brand-secondary/40 hover:bg-brand-secondary/5 transition-colors">
                         <Checkbox
                           id={amenity}
                           checked={formData.amenities.includes(amenity)}
                           onCheckedChange={() => toggleAmenity(amenity)}
-                          className="data-[state=checked]:bg-black data-[state=checked]:border-black"
+                          className="data-[state=checked]:bg-brand-secondary data-[state=checked]:border-brand-secondary"
                         />
                         <Label htmlFor={amenity} className="text-sm font-medium leading-none cursor-pointer flex-1">
                           {amenity}
@@ -1088,7 +1088,7 @@ export default function WarehouseUploadForm() {
             <Card className="shadow-md hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center mr-3">
                     <User className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle>Contact Information</CardTitle>
@@ -1103,7 +1103,7 @@ export default function WarehouseUploadForm() {
                       value={formData.contactPersonName}
                       onChange={e => setFormData({ ...formData, contactPersonName: e.target.value })}
                       placeholder="Contact person name"
-                      className="h-11 border-gray-300 focus:border-gray-500"
+                      className="h-11 border-input focus-visible:border-brand-secondary focus-visible:ring-1 focus-visible:ring-brand-secondary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1143,7 +1143,7 @@ export default function WarehouseUploadForm() {
               <div className="space-y-2">
                 <Label htmlFor="contactAlternatePhone" className="text-sm font-semibold">
                   Alternate Mobile Number
-                  <span className="ml-1 text-xs font-normal text-gray-400">(Optional)</span>
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">(Optional)</span>
                 </Label>
                 <Input
                   id="contactAlternatePhone"
@@ -1172,7 +1172,7 @@ export default function WarehouseUploadForm() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <ImageIcon className="h-5 w-5 text-gray-700 mr-2" />
+                      <ImageIcon className="h-5 w-5 text-brand-icon-primary mr-2" />
                       <CardTitle className="text-lg">Property Images</CardTitle>
                       <span className="text-red-600 mx-3">*</span>
                     </div>
@@ -1185,14 +1185,14 @@ export default function WarehouseUploadForm() {
                       <Label htmlFor="images" className="block w-full cursor-pointer">
                         <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${touchedFields.has('images') && fieldErrors.images
                             ? 'border-red-500 bg-red-50'
-                            : 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
+                            : 'border-dashed border-input hover:border-brand-secondary/60 hover:bg-brand-secondary/5'
                           }`}>
                           <input id="images" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleImageChange} className="hidden" />
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Upload className="h-8 w-8 text-gray-500" />
+                          <div className="w-16 h-16 bg-brand-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Upload className="h-8 w-8 text-brand-icon-primary" />
                           </div>
-                          <p className="text-sm font-semibold text-gray-900 mb-1">Click to upload images</p>
-                          <p className="text-xs text-gray-500">JPG, JPEG, PNG, WEBP, GIF up to 5MB</p>
+                          <p className="text-sm font-semibold text-foreground mb-1">Click to upload images</p>
+                          <p className="text-xs text-muted-foreground">JPG, JPEG, PNG, WEBP, GIF up to 5MB</p>
                         </div>
                       </Label>
                       <ErrMsg field="images" />
@@ -1205,7 +1205,7 @@ export default function WarehouseUploadForm() {
                             <img
                               src={preview}
                               alt={`Preview ${index + 1}`}
-                              className="w-full h-full object-cover rounded-lg border-2 border-gray-200 group-hover:border-gray-500 transition-all cursor-pointer"
+                              className="w-full h-full object-cover rounded-lg border-2 border-border group-hover:border-brand-secondary/50 transition-all cursor-pointer"
                               onClick={() => openGallery(index)}
                             />
                             <Button
@@ -1218,7 +1218,7 @@ export default function WarehouseUploadForm() {
                               <Trash2 className="h-3 w-3" />
                             </Button>
                             <div
-                              className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                              className="absolute inset-0 z-10 bg-transparent group-hover:bg-brand-blue-deep/15 rounded-lg transition-all flex items-center justify-center cursor-pointer"
                               onClick={() => openGallery(index)}
                             >
                               <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1228,29 +1228,29 @@ export default function WarehouseUploadForm() {
 
                         {remainingImages > 0 && (
                           <div
-                            className="relative aspect-square bg-gray-100 rounded-lg border-2 border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-500 transition-all group"
+                            className="relative aspect-square bg-muted/50 rounded-lg border-2 border-dashed border-input flex items-center justify-center cursor-pointer hover:border-brand-secondary/60 transition-all group"
                             onClick={() => setShowImageGallery(true)}
                           >
                             <div className="text-center">
-                              <p className="text-2xl font-bold text-gray-700 group-hover:text-gray-900">+{remainingImages}</p>
-                              <p className="text-xs text-gray-500">more</p>
+                              <p className="text-2xl font-bold text-muted-foreground group-hover:text-brand-blue-deep">+{remainingImages}</p>
+                              <p className="text-xs text-muted-foreground">more</p>
                             </div>
                           </div>
                         )}
 
                         {formData.images.length < MAX_IMAGES && (
                           <Label htmlFor="images-add" className="block cursor-pointer">
-                            <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-gray-500 hover:bg-gray-100 transition-all group">
+                            <div className="aspect-square bg-muted/30 rounded-lg border-2 border-dashed border-input flex items-center justify-center hover:border-brand-secondary/60 hover:bg-brand-secondary/5 transition-all group">
                               <input id="images-add" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleImageChange} className="hidden" />
-                              <Plus className="h-8 w-8 text-gray-400 group-hover:text-gray-600 group-hover:scale-110 transition-transform" />
+                              <Plus className="h-8 w-8 text-muted-foreground group-hover:text-brand-icon-primary group-hover:scale-110 transition-transform" />
                             </div>
                           </Label>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border border-border/60">
                         <span className="font-medium">{formData.images.length} / {MAX_IMAGES} images</span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => setShowImageGallery(true)} className="text-gray-600 hover:text-gray-800 h-7">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setShowImageGallery(true)} className="text-brand-icon-primary hover:text-brand-orange-text-hover h-7">
                           View All
                         </Button>
                       </div>
@@ -1265,10 +1265,10 @@ export default function WarehouseUploadForm() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <Video className="h-5 w-5 text-gray-700 mr-2" />
+                      <Video className="h-5 w-5 text-brand-icon-primary mr-2" />
                       <CardTitle className="text-lg">Property Videos</CardTitle>
                     </div>
-                    <Badge variant="secondary" className="bg-gray-200">Optional</Badge>
+                    <Badge variant="secondary" className="bg-brand-secondary/15 text-brand-blue-deep border-0">Optional</Badge>
                   </div>
                   <CardDescription className="text-xs">Upload up to {MAX_VIDEOS} videos (Max 100MB each)</CardDescription>
                 </CardHeader>
@@ -1278,14 +1278,14 @@ export default function WarehouseUploadForm() {
                       <Label htmlFor="videos" className="block w-full cursor-pointer">
                         <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${touchedFields.has('videos') && fieldErrors.videos
                             ? 'border-red-500 bg-red-50'
-                            : 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
+                            : 'border-dashed border-input hover:border-brand-secondary/60 hover:bg-brand-secondary/5'
                           }`}>
                           <input id="videos" type="file" multiple accept="video/*" onChange={handleVideoChange} className="hidden" />
-                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Video className="h-6 w-6 text-gray-500" />
+                          <div className="w-12 h-12 bg-brand-secondary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Video className="h-6 w-6 text-brand-icon-primary" />
                           </div>
-                          <p className="text-sm font-medium text-gray-900 mb-1">Click to upload</p>
-                          <p className="text-xs text-gray-500">{formData.videos.length}/{MAX_VIDEOS} videos</p>
+                          <p className="text-sm font-medium text-foreground mb-1">Click to upload</p>
+                          <p className="text-xs text-muted-foreground">{formData.videos.length}/{MAX_VIDEOS} videos</p>
                         </div>
                       </Label>
                       <ErrMsg field="videos" />
@@ -1298,7 +1298,7 @@ export default function WarehouseUploadForm() {
                         <div key={index} className="relative group">
                           <video
                             src={preview}
-                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-gray-500 transition-all"
+                            className="w-full h-32 object-cover rounded-lg border-2 border-border group-hover:border-brand-secondary/50 transition-all"
                             controls
                           />
                           <Button
@@ -1310,7 +1310,7 @@ export default function WarehouseUploadForm() {
                           >
                             <X className="h-4 w-4" />
                           </Button>
-                          <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                          <div className="absolute bottom-2 left-2 bg-brand-blue-deep/85 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
                             {(formData.videos[index].size / (1024 * 1024)).toFixed(1)} MB
                           </div>
                         </div>
@@ -1333,14 +1333,14 @@ export default function WarehouseUploadForm() {
                       { label: 'Total Area', value: formData.totalArea ? `${formData.totalArea} ${formData.sizeUnit}` : 'Not set' },
                       { label: 'Media Files', value: `${formData.images.length} images, ${formData.videos.length} videos` },
                     ].map(({ label, value }) => (
-                      <div key={label} className="flex items-center justify-between py-2 border-b border-gray-100">
-                        <span className="text-sm text-gray-600">{label}</span>
-                        <span className="text-sm font-semibold text-gray-900">{value}</span>
+                      <div key={label} className="flex items-center justify-between py-2 border-b border-border">
+                        <span className="text-sm text-muted-foreground">{label}</span>
+                        <span className="text-sm font-semibold text-foreground">{value}</span>
                       </div>
                     ))}
                     <div className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-600">Location</span>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm text-muted-foreground">Location</span>
+                      <span className="text-sm font-semibold text-foreground">
                         {formData.latitude && formData.longitude ? '✓ Set' : 'Not set'}
                       </span>
                     </div>
@@ -1353,7 +1353,7 @@ export default function WarehouseUploadForm() {
                 <Button
                   onClick={handleSubmit}
                   disabled={uploading}
-                  className="w-full bg-black hover:bg-gray-800 text-white py-6 text-base font-bold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+                  className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white py-6 text-base font-bold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
                 >
                   {uploading ? (
                     <>
@@ -1372,7 +1372,7 @@ export default function WarehouseUploadForm() {
                   variant="outline"
                   onClick={() => router.back()}
                   disabled={uploading}
-                  className="w-full py-6 text-base font-medium border-2 hover:bg-gray-50"
+                  className="w-full py-6 text-base font-medium border-2 border-brand-border-secondary hover:bg-brand-secondary/10 hover:text-brand-blue-deep"
                 >
                   Cancel
                 </Button>
@@ -1397,7 +1397,7 @@ export default function WarehouseUploadForm() {
           </DialogHeader>
 
           <div className="relative p-3 sm:p-4 md:p-6 overflow-y-auto">
-            <div className="group relative w-full bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden shadow-2xl flex items-center justify-center">
+            <div className="group relative w-full bg-gradient-to-br from-brand-blue-deep to-brand-secondary-hover rounded-xl overflow-hidden shadow-2xl flex items-center justify-center">
               <div className="w-full h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] flex items-center justify-center" style={{ minHeight: '300px', maxHeight: '800px' }}>
                 <img
                   src={imagePreviews[selectedImageIndex]}
@@ -1409,14 +1409,14 @@ export default function WarehouseUploadForm() {
               {imagePreviews.length > 1 && (
                 <>
                   <Button type="button" size="icon" variant="secondary" onClick={goToPreviousImage}
-                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-gray-200 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100">
-                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-border hover:border-brand-secondary/40 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100">
+                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue-deep" />
                   </Button>
                   <Button type="button" size="icon" variant="secondary" onClick={goToNextImage}
-                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-gray-200 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100">
-                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/95 hover:bg-white shadow-2xl border-2 border-border hover:border-brand-secondary/40 hover:scale-110 transition-all md:opacity-0 md:group-hover:opacity-100">
+                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue-deep" />
                   </Button>
-                  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-black/75 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100">
+                  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-brand-blue-deep/90 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100">
                     {selectedImageIndex + 1} / {imagePreviews.length}
                   </div>
                 </>
@@ -1431,12 +1431,12 @@ export default function WarehouseUploadForm() {
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
                       className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden transition-all ${index === selectedImageIndex
-                          ? 'ring-4 ring-gray-800 scale-105 shadow-lg'
-                          : 'ring-2 ring-gray-200 hover:ring-gray-400 hover:scale-105'
+                          ? 'ring-4 ring-brand-secondary scale-105 shadow-lg'
+                          : 'ring-2 ring-border hover:ring-brand-secondary/50 hover:scale-105'
                         }`}
                     >
                       <img src={preview} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
-                      {index === selectedImageIndex && <div className="absolute inset-0 bg-gray-900/20" />}
+                      {index === selectedImageIndex && <div className="absolute inset-0 bg-brand-blue-deep/25" />}
                     </button>
                   ))}
                 </div>

@@ -49,7 +49,7 @@ function getInitials(name: string): string {
 }
 
 const DEFAULT_SETTINGS: DashboardSettings = {
-  hero_background_color: "#0a0f1e",
+  hero_background_color: "#134c52",
   hero_title: "Welcome to Your Portal",
   hero_subtitle: "Manage your listings, track leads, and grow your real estate business.",
   footer_text: "© {year} Rexon Properties. All rights reserved.",
@@ -149,7 +149,7 @@ export default function DashboardPage() {
         backgroundRepeat: "no-repeat",
       }
     : {
-        backgroundColor: settings.hero_background_color || "#0a0f1e",
+        backgroundColor: settings.hero_background_color || "#134c52",
       };
 
   const footerText = (settings.footer_text || DEFAULT_SETTINGS.footer_text || "")
@@ -172,15 +172,15 @@ export default function DashboardPage() {
         ) : (
           <>
             <div
-              className="absolute inset-0 opacity-35"
+              className="absolute inset-0 opacity-40"
               style={{
-                background: `radial-gradient(ellipse 70% 60% at 20% 40%, rgba(99,102,241,0.45) 0%, transparent 70%)`,
+                background: `radial-gradient(ellipse 70% 60% at 20% 40%, rgba(19,168,180,0.42) 0%, transparent 70%)`,
               }}
             />
             <div
-              className="absolute inset-0 opacity-20"
+              className="absolute inset-0 opacity-25"
               style={{
-                background: `radial-gradient(ellipse 50% 50% at 80% 60%, rgba(16,185,129,0.3) 0%, transparent 70%)`,
+                background: `radial-gradient(ellipse 50% 50% at 80% 60%, rgba(208,118,72,0.38) 0%, transparent 70%)`,
               }}
             />
             <div
@@ -203,7 +203,7 @@ export default function DashboardPage() {
 
             {/* Left: greeting + name */}
             <div className="flex-1 min-w-0">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em] text-white/45 mb-3">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em] text-brand-icon-primary/90 mb-3">
                 Welcome to Agent Dashboard
               </p>
               <h1
@@ -254,13 +254,13 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex mt-2 items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase ${
                         agent.status === "approved"
-                          ? "bg-emerald-400/15 text-emerald-300 border border-emerald-400/25"
-                          : "bg-amber-400/15 text-amber-300 border border-amber-400/25"
+                          ? "bg-brand-secondary/20 text-white/95 border border-brand-secondary/45"
+                          : "bg-brand-primary/20 text-white/95 border border-brand-primary/40"
                       }`}
                     >
                       <span
                         className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                          agent.status === "approved" ? "bg-emerald-400" : "bg-amber-400"
+                          agent.status === "approved" ? "bg-brand-secondary" : "bg-brand-primary"
                         }`}
                       />
                       {agent.status === "approved" ? "Active" : agent.status}
@@ -293,19 +293,19 @@ export default function DashboardPage() {
       {/* ── Main content area ─────────────────────────────────────────────── */}
       <section className="flex-1 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card className="lg:col-span-2 p-5 border border-border bg-card min-h-[160px] flex items-center justify-center">
+          <Card className="lg:col-span-2 p-5 border border-brand-secondary/20 bg-card min-h-[160px] flex items-center justify-center shadow-sm">
             <p className="text-[13px] text-muted-foreground/50">Recent Listings will appear here</p>
           </Card>
-          <Card className="p-5 border border-border bg-card min-h-[160px] flex items-center justify-center">
+          <Card className="p-5 border border-brand-secondary/20 bg-card min-h-[160px] flex items-center justify-center shadow-sm">
             <p className="text-[13px] text-muted-foreground/50">Lead Activity</p>
           </Card>
         </div>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="mt-auto border-t border-border pt-5 pb-4">
+      <footer className="mt-auto border-t border-brand-secondary/25 pt-5 pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <p className="text-[12px] text-muted-foreground">{footerText}</p>
+          <p className="text-[12px] font-medium text-brand-blue-deep">{footerText}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {(settings.footer_links || []).map((link, i) => (
               <a
@@ -313,7 +313,7 @@ export default function DashboardPage() {
                 href={link.url || "#"}
                 target={link.url && link.url !== "#" ? "_blank" : undefined}
                 rel="noopener noreferrer"
-                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                className="text-[12px] font-semibold text-brand-blue-deep hover:text-brand-orange-text-hover transition-colors flex items-center gap-1"
               >
                 {link.label}
                 {link.url && link.url !== "#" && <ExternalLink className="w-3 h-3" />}
@@ -327,18 +327,18 @@ export default function DashboardPage() {
             {agent.email && (
               <a
                 href={`mailto:${agent.email}`}
-                className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 text-[11.5px] text-brand-blue-deep/85 hover:text-brand-orange-text-hover transition-colors"
               >
-                <Mail className="w-3 h-3" />
+                <Mail className="w-3 h-3 shrink-0 text-brand-icon-primary" />
                 {agent.email}
               </a>
             )}
             {agent.mobile_number && (
               <a
                 href={`tel:${agent.mobile_number}`}
-                className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 text-[11.5px] text-brand-blue-deep/85 hover:text-brand-orange-text-hover transition-colors"
               >
-                <Phone className="w-3 h-3" />
+                <Phone className="w-3 h-3 shrink-0 text-brand-icon-primary" />
                 {agent.mobile_number}
               </a>
             )}

@@ -49,10 +49,10 @@ function notifIcon(type: string): { bg: string; color: string; initial: string }
   if (type.includes('approved'))    return { bg: '#16a34a22', color: '#16a34a', initial: '✓' };
   if (type.includes('rejected'))    return { bg: '#dc262622', color: '#dc2626', initial: '✕' };
   if (type.includes('deactivated')) return { bg: '#71717a22', color: '#71717a', initial: '–' };
-  if (type.includes('warehouse'))   return { bg: '#2563eb22', color: '#2563eb', initial: 'W' };
+  if (type.includes('warehouse'))   return { bg: '#13a8b422', color: '#0f8a94', initial: 'W' };
   if (type.includes('property'))    return { bg: '#c9a84c22', color: '#c9a84c', initial: 'P' };
-  if (type.includes('domain'))      return { bg: '#7b9ef022', color: '#7b9ef0', initial: 'D' };
-  return                                   { bg: '#2dd4ab22', color: '#2dd4ab', initial: 'N' };
+  if (type.includes('domain'))      return { bg: '#13a8b422', color: '#0f8a94', initial: 'D' };
+  return                                   { bg: '#13a8b422', color: '#0f8a94', initial: 'N' };
 }
 
 
@@ -116,7 +116,7 @@ function NavIconBtn({
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className={cn("w-9 h-9 text-brand-icon-primary hover:text-brand-icon-secondary hover:bg-blue-50 rounded-lg shrink-0", className)}
+      className={cn("w-9 h-9 text-brand-icon-primary hover:text-brand-icon-secondary hover:bg-brand-secondary/10 rounded-lg shrink-0", className)}
     >
       {children}
     </Button>

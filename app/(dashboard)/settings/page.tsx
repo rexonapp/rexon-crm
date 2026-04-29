@@ -51,7 +51,7 @@ function getInitials(name: string): string {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60 mb-4">
+    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-brand-blue-deep/90 mb-4">
       {children}
     </p>
   );
@@ -76,7 +76,7 @@ function SaveButton({ loading, saved, onClick }: {
       size="sm"
       className={cn(
         "h-8 px-4 text-[12.5px] font-semibold gap-2 transition-all duration-300",
-        saved && "bg-emerald-600 hover:bg-emerald-600 text-white"
+        saved && "bg-brand-secondary hover:bg-brand-secondary-hover text-white"
       )}
     >
       {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
@@ -324,7 +324,7 @@ export default function SettingsPage() {
   /* Dashboard settings */
   const [settings, setSettings] = useState<DashboardSettings>({
     hero_background_url: "",
-    hero_background_color: "#0a0f1e",
+    hero_background_color: "#134c52",
     hero_title: "Welcome to Your Portal",
     hero_subtitle: "Manage your listings, track leads, and grow your real estate business.",
     footer_text: "© {year} Rexon Properties. All rights reserved.",
@@ -557,7 +557,7 @@ export default function SettingsPage() {
   const previewBg = bgPreview || settings.hero_background_url;
   const previewStyle: React.CSSProperties = previewBg
     ? { backgroundImage: `url(${previewBg})`, backgroundSize: "cover", backgroundPosition: "center" }
-    : { backgroundColor: settings.hero_background_color || "#0a0f1e" };
+    : { backgroundColor: settings.hero_background_color || "#134c52" };
 
   return (
     <div className="max-w-3xl lg:py-10 xl:py-10 py-4 space-y-5">
@@ -674,7 +674,7 @@ export default function SettingsPage() {
                 </p>
               )}
               {photoSaved && !photoFile && (
-                <p className="text-[12px] text-emerald-600 flex items-center gap-1.5 mt-2">
+                <p className="text-[12px] text-brand-icon-primary flex items-center gap-1.5 mt-2">
                   <Check className="w-3.5 h-3.5" /> Profile photo updated.
                 </p>
               )}
@@ -697,8 +697,8 @@ export default function SettingsPage() {
           {/* Live preview */}
           <div>
             <div className="flex items-center gap-2 mb-2.5">
-              <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-[11.5px] font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</span>
+              <Eye className="w-3.5 h-3.5 text-brand-icon-primary" />
+              <span className="text-[11.5px] font-semibold text-brand-blue-deep/90 uppercase tracking-wider">Live Preview</span>
             </div>
             <div
               className="relative w-full rounded-xl overflow-hidden border border-border shadow-sm"
@@ -711,14 +711,16 @@ export default function SettingsPage() {
                 </>
               ) : (
                 <>
-                  <div className="absolute inset-0 opacity-25"
-                    style={{ background: `radial-gradient(ellipse 70% 60% at 20% 40%, rgba(99,102,241,0.5) 0%, transparent 70%)` }} />
+                  <div className="absolute inset-0 opacity-30"
+                    style={{ background: `radial-gradient(ellipse 70% 60% at 20% 40%, rgba(19,168,180,0.4) 0%, transparent 70%)` }} />
+                  <div className="absolute inset-0 opacity-20"
+                    style={{ background: `radial-gradient(ellipse 50% 50% at 80% 60%, rgba(208,118,72,0.35) 0%, transparent 70%)` }} />
                   <div className="absolute inset-0 opacity-[0.04]"
                     style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
                 </>
               )}
               <div className="relative z-10 px-6 py-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45 mb-1">Good morning</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-icon-primary/95 mb-1">Good morning</p>
                 <p className="text-[28px] font-black text-white leading-none mb-2">
                   {agent ? agent.full_name.split(" ")[0] : "Name"}<span className="text-white/25">.</span>
                 </p>
@@ -762,15 +764,15 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={settings.hero_background_color || "#0a0f1e"}
+                    value={settings.hero_background_color || "#134c52"}
                     onChange={(e) => setSettings((prev) => ({ ...prev, hero_background_color: e.target.value }))}
                     className="w-9 h-9 rounded-lg border border-border cursor-pointer bg-transparent p-0.5 shrink-0"
                   />
                   <Input
-                    value={settings.hero_background_color || "#0a0f1e"}
+                    value={settings.hero_background_color || "#134c52"}
                     onChange={(e) => setSettings((prev) => ({ ...prev, hero_background_color: e.target.value }))}
                     className="h-9 text-[13px] font-mono"
-                    placeholder="#0a0f1e"
+                    placeholder="#134c52"
                   />
                 </div>
               </div>

@@ -201,8 +201,8 @@ export default function Sidebar({
       )}
     >
       <div className="h-[60px] px-5 flex items-center gap-3 border-b border-border shrink-0">
-        <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center shrink-0 shadow-sm">
-          <span className="text-[14px] font-extrabold text-background tracking-tight">R</span>
+        <div className="w-8 h-8 bg-brand-secondary rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+          <span className="text-[14px] font-extrabold text-white tracking-tight">R</span>
         </div>
         <div className="flex-1">
           <div className="text-[16px] font-semibold text-foreground leading-tight tracking-tight">
@@ -226,7 +226,7 @@ export default function Sidebar({
       <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/55 px-2.5 mb-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-blue-deep px-2.5 mb-1.5">
               {section.label}
             </p>
             <div className="space-y-0.5">

@@ -102,7 +102,7 @@ function StatCard({
       <CardContent className="pt-5 pb-5 px-5">
         <div className="flex items-start justify-between">
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/60">{label}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-blue-deep/90">{label}</p>
             <p className="text-3xl font-bold text-foreground leading-none">{value}</p>
             <p className="text-[12px] text-muted-foreground">{sub}</p>
           </div>
@@ -120,11 +120,11 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
     Active: {
       label: 'Active',
-      className: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+      className: 'bg-brand-secondary/10 text-brand-blue-deep border border-brand-secondary/30 dark:bg-brand-secondary/15 dark:text-brand-icon-primary dark:border-brand-secondary/40',
     },
     Approved: {
       label: 'Approved',
-      className: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+      className: 'bg-brand-secondary/10 text-brand-blue-deep border border-brand-secondary/30 dark:bg-brand-secondary/15 dark:text-brand-icon-primary dark:border-brand-secondary/40',
     },
     Pending: {
       label: 'Pending',
@@ -146,7 +146,7 @@ function StatusBadge({ status }: { status: string }) {
 /* ── Price Type Badge ── */
 function PriceTypeBadge({ type }: { type: string }) {
   return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold leading-none bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 whitespace-nowrap">
+    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold leading-none bg-brand-secondary/10 text-brand-blue-deep border border-brand-secondary/30 dark:bg-brand-secondary/15 dark:text-brand-icon-primary dark:border-brand-secondary/40 whitespace-nowrap">
       {type}
     </span>
   );
@@ -155,7 +155,7 @@ function PriceTypeBadge({ type }: { type: string }) {
 /* ── Filter Label ── */
 function FilterSectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/60 mb-2">{children}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-blue-deep/90 mb-2">{children}</p>
   );
 }
 
@@ -669,7 +669,7 @@ export default function MyListingsPage() {
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-[14px] font-semibold text-foreground leading-tight">{p.title}</span>
                               {p.is_verified && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-blue-deep bg-brand-secondary/10 border border-brand-secondary/30 rounded-full px-2 py-0.5 dark:bg-brand-secondary/15 dark:border-brand-secondary/40 dark:text-brand-icon-primary">
                                   <CheckCircle className="h-3 w-3" />Verified
                                 </span>
                               )}

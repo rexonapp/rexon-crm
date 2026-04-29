@@ -34,7 +34,7 @@ function RequirementItem({ met, label }: { met: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2 text-[12px]">
       {met ? (
-        <Check className="w-4 h-4 text-green-600" />
+        <Check className="w-4 h-4 text-brand-icon-primary" />
       ) : (
         <div className="w-4 h-4 rounded-full border border-muted-foreground/30" />
       )}
@@ -134,8 +134,8 @@ export default function ChangePasswordPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="w-full max-w-[400px] text-center">
-          <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 border border-green-200">
-            <Check className="w-8 h-8 text-green-600" />
+          <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-secondary/10 border border-brand-secondary/30">
+            <Check className="w-8 h-8 text-brand-icon-primary" />
           </div>
           <h1 className="text-[24px] font-semibold text-foreground mb-2">
             Password Changed
@@ -194,7 +194,7 @@ export default function ChangePasswordPage() {
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                 {isTempPrefilled && (
-                  <ShieldCheck className="w-4 h-4 text-green-600" />
+                  <ShieldCheck className="w-4 h-4 text-brand-icon-primary" />
                 )}
                 <button
                   type="button"

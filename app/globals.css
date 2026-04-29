@@ -51,6 +51,9 @@
     --color-brand-icon-secondary: var(--brand-icon-secondary);
     --color-brand-border-secondary: var(--brand-border-secondary);
     --color-brand-border-primary: var(--brand-border-primary);
+    --color-brand-blue-deep: var(--brand-blue-deep);
+    --color-brand-orange-deep: var(--brand-orange-deep);
+    --color-brand-orange-text-hover: var(--brand-orange-text-hover);
 }
 
 @layer utilities {
@@ -65,6 +68,9 @@
   .text-brand-secondary { color: var(--brand-secondary); }
   .text-brand-icon-primary { color: var(--brand-icon-primary); }
   .text-brand-icon-secondary { color: var(--brand-icon-secondary); }
+  .text-brand-blue-deep { color: var(--brand-blue-deep); }
+  .text-brand-orange-deep { color: var(--brand-orange-deep); }
+  .hover\:text-brand-orange-text-hover:hover { color: var(--brand-orange-text-hover); }
   .border-brand-secondary { border-color: var(--brand-border-secondary); }
   .border-brand-primary { border-color: var(--brand-border-primary); }
   .ring-brand-secondary { --tw-ring-color: var(--brand-secondary); }
@@ -133,13 +139,16 @@
     --sidebar-w: 240px;
     --nav-h: 64px;
 
-    /* Brand Colors */
+    /* Brand Colors — blue/teal + orange */
     --brand-primary: #d07648;
     --brand-primary-hover: #c46b3f;
     --brand-secondary: #13a8b4;
     --brand-secondary-hover: #0b6f78;
+    --brand-blue-deep: #134c52;
     --brand-icon-primary: #0f8a94;
     --brand-icon-secondary: #d07648;
+    --brand-orange-deep: #a85832;
+    --brand-orange-text-hover: #8e4c2d;
     --brand-border-secondary: rgb(19 168 180 / 0.25);
     --brand-border-primary: rgb(208 118 72 / 0.2);
     --brand-gradient: linear-gradient(135deg, #13a8b4 0%, #d07648 50%, #13a8b4 100%);
