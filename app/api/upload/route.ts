@@ -122,6 +122,18 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
     Readable.from(buffer).pipe(bb);
   });
 }
+export function parseAmenities(value: any): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try { return JSON.parse(trimmed); } catch { return []; }
+    }
+    return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
 
 async function uploadToS3(buffer: Buffer, mimetype: string, s3Key: string): Promise<string> {
   try {
@@ -469,7 +481,7 @@ export async function GET(request: NextRequest) {
 
         return {
           ...warehouse,
-          amenities: warehouse.amenities ? JSON.parse(warehouse.amenities) : [],
+          amenities: parseAmenities(warehouse.amenities),
           images: mediaResult.rows.filter((m: any) => m.file_type?.startsWith('image/')),
           videos: mediaResult.rows.filter((m: any) => m.file_type?.startsWith('video/')),
         };
