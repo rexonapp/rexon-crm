@@ -66,10 +66,18 @@ export function middleware(request: NextRequest) {
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
+  if ((request.method === 'POST' || request.method === 'PATCH') && 
+      (request.nextUrl.pathname.startsWith('/api/upload') || 
+       request.nextUrl.pathname.startsWith('/api/properties'))) {
+    
+    console.log(`[MIDDLEWARE] ${request.method} ${request.nextUrl.pathname}`);
+    console.log(`[MIDDLEWARE] Content-Length: ${request.headers.get('content-length')} bytes`);
+  }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/api/:path*'],
 };
+ 

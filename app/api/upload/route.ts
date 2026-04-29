@@ -12,12 +12,10 @@ import { notifyPropertyAdded } from '@/lib/notifyPropertyAdded';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Raise the Next.js route-segment body limit so the framework does not
-// truncate the request before we can stream it through busboy.
-// This is the correct per-route-segment override for App Router route handlers.
-export const maxDuration = 60; // seconds — give large uploads enough time
+// Vercel serverless function timeout — increase for large uploads
+// Maximum on Vercel Pro is 900 seconds; on standard is 60 seconds
+export const maxDuration = 900;
 export const fetchCache = 'force-no-store';
-
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-south-2',
@@ -28,8 +26,8 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = 'rexon-web';
-const MAX_IMAGE_SIZE = 20 * 1024 * 1024;    // 5 MB
-const MAX_VIDEO_SIZE = 250 * 1024 * 1024;  // 100 MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;    // 20 MB (matches your requirement)
+const MAX_VIDEO_SIZE = 250 * 1024 * 1024;   // 250 MB
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 2;
 
@@ -73,7 +71,7 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
         fileSize: MAX_VIDEO_SIZE,
         files: MAX_IMAGES + MAX_VIDEOS,
         fields: 50,
-        fieldSize: 1 * 1024 * 1024,
+        fieldSize: 10 * 1024 * 1024, // 10 MB for field data
       },
     });
 
@@ -105,9 +103,17 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
           files.push({ fieldname, filename, mimetype: mimeType, buffer: Buffer.concat(chunks), size });
         }
       });
+
+      fileStream.on('error', (err: any) => {
+        errors.push(`Error reading file "${filename}": ${err.message}`);
+      });
     });
 
-    bb.on('error', (err: Error) => reject(err));
+    bb.on('error', (err: Error) => {
+      console.error('Busboy error:', err);
+      reject(err);
+    });
+
     bb.on('finish', () => {
       if (errors.length > 0) return reject(new Error(errors[0]));
       resolve({ fields, files });
@@ -119,15 +125,24 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
 }
 
 async function uploadToS3(buffer: Buffer, mimetype: string, s3Key: string): Promise<string> {
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key,
-      Body: buffer,
-      ContentType: mimetype,
-    })
-  );
-  return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+  try {
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: mimetype,
+        // Add metadata for debugging
+        Metadata: {
+          'uploaded-at': new Date().toISOString(),
+        },
+      })
+    );
+    return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+  } catch (error) {
+    console.error('S3 upload error:', error);
+    throw new Error(`Failed to upload file to S3: ${(error as any).message}`);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -152,6 +167,7 @@ export async function POST(request: NextRequest) {
     try {
       const arrayBuffer = await request.arrayBuffer();
       bodyBuffer = Buffer.from(arrayBuffer);
+      console.log(`[UPLOAD] Request body size: ${(bodyBuffer.length / 1024 / 1024).toFixed(2)} MB`);
     } catch (e: any) {
       console.error('Failed to read request body:', e);
       return NextResponse.json({ error: 'Failed to read request body.' }, { status: 400 });
@@ -160,6 +176,7 @@ export async function POST(request: NextRequest) {
     let parsed: ParsedForm;
     try {
       parsed = await parseMultipartFromBuffer(bodyBuffer, contentType);
+      console.log(`[UPLOAD] Parsed files: ${parsed.files.length}, fields: ${Object.keys(parsed.fields).length}`);
     } catch (parseError: any) {
       console.error('Multipart parse error:', parseError);
       return NextResponse.json(
@@ -218,6 +235,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Maximum ${MAX_VIDEOS} videos allowed.` }, { status: 400 });
     }
 
+    // Validate images
     for (const file of images) {
       if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
         return NextResponse.json(
@@ -226,10 +244,14 @@ export async function POST(request: NextRequest) {
         );
       }
       if (file.size > MAX_IMAGE_SIZE) {
-        return NextResponse.json({ error: `Image "${file.filename}" exceeds the 5 MB limit.` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Image "${file.filename}" exceeds the 20 MB limit. File size: ${(file.size / 1024 / 1024).toFixed(2)} MB` },
+          { status: 400 }
+        );
       }
     }
 
+    // Validate videos
     for (const file of videos) {
       if (!ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
         return NextResponse.json(
@@ -238,11 +260,14 @@ export async function POST(request: NextRequest) {
         );
       }
       if (file.size > MAX_VIDEO_SIZE) {
-        return NextResponse.json({ error: `Video "${file.filename}" exceeds the 100 MB limit.` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Video "${file.filename}" exceeds the 250 MB limit. File size: ${(file.size / 1024 / 1024).toFixed(2)} MB` },
+          { status: 400 }
+        );
       }
     }
 
-    // ── Type normalisation ───────────────────────────────────────────────────
+    // ── Type normalisation ───────────────────────────────────────────────
     const priceType = listingType === 'rent' ? 'Rent' : listingType === 'sale' ? 'Sale' : 'Lease';
 
     const propertyTypeMap: Record<string, string> = {
@@ -252,7 +277,7 @@ export async function POST(request: NextRequest) {
       'manufacturing_unit':  'Manufacturing Unit',
       'godown':              'Godown',
       'factory_space':       'Factory Space',
-      'logistics_hub':       'Logistics Hub'  ,
+      'logistics_hub':       'Logistics Hub',
       'distribution_center': 'Distribution Center',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
@@ -269,54 +294,56 @@ export async function POST(request: NextRequest) {
     const normalizedRoadConnectivity = roadConnectivity
       ? roadConnectivityMap[roadConnectivity] || 'Other'
       : null;
-      const { autoApproveListings} = await getAutoApprovalFlags();
-      console.log('autoApprovaListings:', autoApproveListings);
-      const initialStatus = autoApproveListings ? 'Active' : 'Pending';
-      console.log(initialStatus,'inital status')
 
-      const warehouseResult = await query(
-        `INSERT INTO warehouses 
-         (user_id, property_name, title, description, property_type,
-          space_available, space_unit, warehouse_size, available_from,
-          price_type, price_per_sqft, total_price,
-          address, city, state, pincode, road_connectivity,
-          contact_person_name, contact_person_phone, contact_person_alternate,
-          contact_person_email, contact_person_designation,
-          latitude, longitude, amenities, status, state_code,
-          is_price_negotiable)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
-         RETURNING id, property_name, title, address, city, created_at`,
-        [
-          userId,                          // $1
-          title,                           // $2  property_name
-          title,                           // $3  title
-          description,                     // $4
-          normalizedPropertyType,          // $5
-          parseFloat(totalArea),           // $6  space_available
-          sizeUnit,                        // $7  space_unit
-          parseFloat(totalArea),           // $8  warehouse_size
-          availableFrom,                   // $9
-          priceType,                       // $10
-          parseFloat(pricePerSqFt),        // $11
-          totalPrice,                      // $12  total_price (already parsed as float or null)
-          address,                         // $13
-          city,                            // $14
-          state,                           // $15
-          pincode || null,                 // $16
-          normalizedRoadConnectivity,      // $17
-          contactPersonName,               // $18
-          contactPersonPhone,              // $19
-          contactPersonAlternatePhone,     // $20
-          contactPersonEmail,              // $21
-          contactPersonDesignation,        // $22
-          latitude  ? parseFloat(latitude)  : null,  // $23
-          longitude ? parseFloat(longitude) : null,  // $24
-          JSON.stringify(amenities),       // $25
-          initialStatus,                   // $26
-          state_code,                      // $27
-          isPriceNegotiable,               // $28
-        ]
-      );
+    const { autoApproveListings } = await getAutoApprovalFlags();
+    console.log('autoApproveListings:', autoApproveListings);
+    const initialStatus = autoApproveListings ? 'Active' : 'Pending';
+    console.log(initialStatus, 'initial status');
+
+    // Insert warehouse record
+    const warehouseResult = await query(
+      `INSERT INTO warehouses 
+       (user_id, property_name, title, description, property_type,
+        space_available, space_unit, warehouse_size, available_from,
+        price_type, price_per_sqft, total_price,
+        address, city, state, pincode, road_connectivity,
+        contact_person_name, contact_person_phone, contact_person_alternate,
+        contact_person_email, contact_person_designation,
+        latitude, longitude, amenities, status, state_code,
+        is_price_negotiable)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+       RETURNING id, property_name, title, address, city, created_at`,
+      [
+        userId,                          // $1
+        title,                           // $2  property_name
+        title,                           // $3  title
+        description,                     // $4
+        normalizedPropertyType,          // $5
+        parseFloat(totalArea),           // $6  space_available
+        sizeUnit,                        // $7  space_unit
+        parseFloat(totalArea),           // $8  warehouse_size
+        availableFrom,                   // $9
+        priceType,                       // $10
+        parseFloat(pricePerSqFt),        // $11
+        totalPrice ? parseFloat(totalPrice as string) : null, // $12
+        address,                         // $13
+        city,                            // $14
+        state,                           // $15
+        pincode || null,                 // $16
+        normalizedRoadConnectivity,      // $17
+        contactPersonName,               // $18
+        contactPersonPhone,              // $19
+        contactPersonAlternatePhone,     // $20
+        contactPersonEmail,              // $21
+        contactPersonDesignation,        // $22
+        latitude ? parseFloat(latitude as string) : null,   // $23
+        longitude ? parseFloat(longitude as string) : null, // $24
+        JSON.stringify(amenities),       // $25
+        initialStatus,                   // $26
+        state_code,                      // $27
+        isPriceNegotiable,               // $28
+      ]
+    );
 
     const warehouseId = warehouseResult.rows[0].id;
     const agentNameResult = await query(
@@ -324,9 +351,10 @@ export async function POST(request: NextRequest) {
       [userId]
     );
     const agentName = agentNameResult.rows[0]?.full_name ?? `Agent #${userId}`;
- 
+
+    // Notify property added (fire and forget)
     notifyPropertyAdded({
-      agentId:       userId,
+      agentId: userId,
       agentName,
       propertyTitle: title,
       warehouseId,
@@ -334,42 +362,60 @@ export async function POST(request: NextRequest) {
 
     // ── Upload images concurrently ───────────────────────────────────────────
     const imageUploadPromises = images.map(async (file, index) => {
-      const ext       = file.filename.split('.').pop();
-      const randomStr = randomBytes(16).toString('hex');
-      const s3Key     = `${userId}/warehouses/${warehouseId}/images/${Date.now()}-${randomStr}.${ext}`;
-      const s3Url     = await uploadToS3(file.buffer, file.mimetype, s3Key);
+      try {
+        const ext = file.filename.split('.').pop();
+        const randomStr = randomBytes(16).toString('hex');
+        const s3Key = `${userId}/warehouses/${warehouseId}/images/${Date.now()}-${randomStr}.${ext}`;
+        
+        console.log(`[IMAGE] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB) to S3...`);
+        const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
+        console.log(`[IMAGE] Successfully uploaded to ${s3Url}`);
 
-      const result = await query(
-        `INSERT INTO uploads
-         (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         RETURNING id, file_name, s3_url, is_primary, image_order`,
-        [userId, warehouseId, index, index === 0, file.filename, file.mimetype, file.size, s3Key, s3Url, 'Active']
-      );
-      return result.rows[0];
+        const result = await query(
+          `INSERT INTO uploads
+           (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           RETURNING id, file_name, s3_url, is_primary, image_order`,
+          [userId, warehouseId, index, index === 0, file.filename, file.mimetype, file.size, s3Key, s3Url, 'Active']
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error(`[IMAGE] Upload failed for ${file.filename}:`, error);
+        throw error;
+      }
     });
 
     // ── Upload videos concurrently ───────────────────────────────────────────
     const videoUploadPromises = videos.map(async (file, index) => {
-      const ext       = file.filename.split('.').pop();
-      const randomStr = randomBytes(16).toString('hex');
-      const s3Key     = `${userId}/warehouses/${warehouseId}/videos/${Date.now()}-${randomStr}.${ext}`;
-      const s3Url     = await uploadToS3(file.buffer, file.mimetype, s3Key);
+      try {
+        const ext = file.filename.split('.').pop();
+        const randomStr = randomBytes(16).toString('hex');
+        const s3Key = `${userId}/warehouses/${warehouseId}/videos/${Date.now()}-${randomStr}.${ext}`;
+        
+        console.log(`[VIDEO] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB) to S3...`);
+        const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
+        console.log(`[VIDEO] Successfully uploaded to ${s3Url}`);
 
-      const result = await query(
-        `INSERT INTO uploads
-         (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         RETURNING id, file_name, s3_url, is_primary, image_order`,
-        [userId, warehouseId, index, false, file.filename, file.mimetype, file.size, s3Key, s3Url, 'Active']
-      );
-      return result.rows[0];
+        const result = await query(
+          `INSERT INTO uploads
+           (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           RETURNING id, file_name, s3_url, is_primary, image_order`,
+          [userId, warehouseId, index, false, file.filename, file.mimetype, file.size, s3Key, s3Url, 'Active']
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error(`[VIDEO] Upload failed for ${file.filename}:`, error);
+        throw error;
+      }
     });
 
     const [uploadedImages, uploadedVideos] = await Promise.all([
       Promise.all(imageUploadPromises),
       Promise.all(videoUploadPromises),
     ]);
+
+    console.log(`[SUCCESS] Property ${warehouseId} created with ${uploadedImages.length} images and ${uploadedVideos.length} videos`);
 
     return NextResponse.json({
       success: true,
@@ -383,7 +429,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Property creation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create property listing. Please try again.' },
+      { error: `Failed to create property listing: ${(error as any).message}` },
       { status: 500 }
     );
   }
@@ -401,9 +447,9 @@ export async function GET(request: NextRequest) {
     const warehousesResult = await query(
       `SELECT id, property_name, title, description, property_type,
               space_available, space_unit, warehouse_size, available_from,
-              price_type, price_per_sqft,total_price
+              price_type, price_per_sqft, total_price,
               address, city, state, pincode, road_connectivity,
-              contact_person_name, contact_person_phone,contact_person_alternate, contact_person_email, contact_person_designation,
+              contact_person_name, contact_person_phone, contact_person_alternate, contact_person_email, contact_person_designation,
               latitude, longitude, amenities,
               is_verified, is_featured, status, created_at, updated_at, state_code
        FROM warehouses

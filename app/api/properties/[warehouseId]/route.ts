@@ -9,11 +9,14 @@ import { Readable } from 'stream';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+
+// Vercel timeout — increase for large file uploads
+// NOTE: Vercel Pro allows up to 900 seconds; standard is 60 seconds
+export const maxDuration = 900;
 
 // ── Shared constants ─────────────────────────────────────────────────────────
-const MAX_IMAGE_SIZE = 20 * 1024 * 1024;     // 5 MB
-const MAX_VIDEO_SIZE = 250 * 1024 * 1024;   // 250 MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;     // 20 MB
+const MAX_VIDEO_SIZE = 250 * 1024 * 1024;    // 250 MB
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 2;
 
@@ -56,7 +59,7 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
         fileSize: MAX_VIDEO_SIZE,           // largest single file allowed
         files: MAX_IMAGES + MAX_VIDEOS,
         fields: 50,
-        fieldSize: 1 * 1024 * 1024,
+        fieldSize: 10 * 1024 * 1024,        // 10 MB for field data
       },
     });
 
@@ -88,9 +91,17 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
           files.push({ fieldname, filename, mimetype: mimeType, buffer: Buffer.concat(chunks), size });
         }
       });
+
+      fileStream.on('error', (err: any) => {
+        errors.push(`Error reading file "${filename}": ${err.message}`);
+      });
     });
 
-    bb.on('error', (err: Error) => reject(err));
+    bb.on('error', (err: Error) => {
+      console.error('Busboy error:', err);
+      reject(err);
+    });
+
     bb.on('finish', () => {
       if (errors.length > 0) return reject(new Error(errors[0]));
       resolve({ fields, files });
@@ -102,15 +113,23 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
 
 // ── S3 helper ────────────────────────────────────────────────────────────────
 async function uploadToS3(buffer: Buffer, mimetype: string, s3Key: string): Promise<string> {
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key,
-      Body: buffer,
-      ContentType: mimetype,
-    })
-  );
-  return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+  try {
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: mimetype,
+        Metadata: {
+          'uploaded-at': new Date().toISOString(),
+        },
+      })
+    );
+    return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+  } catch (error) {
+    console.error('S3 upload error:', error);
+    throw new Error(`Failed to upload file to S3: ${(error as any).message}`);
+  }
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -186,7 +205,9 @@ export async function GET(
         amenities = typeof warehouse.amenities === 'string'
           ? JSON.parse(warehouse.amenities)
           : warehouse.amenities;
-      } catch { amenities = []; }
+      } catch {
+        amenities = [];
+      }
     }
 
     return NextResponse.json({
@@ -239,6 +260,7 @@ export async function PATCH(
     try {
       const arrayBuffer = await request.arrayBuffer();
       bodyBuffer = Buffer.from(arrayBuffer);
+      console.log(`[PATCH] Request body size: ${(bodyBuffer.length / 1024 / 1024).toFixed(2)} MB`);
     } catch (e: any) {
       console.error('Failed to read request body:', e);
       return NextResponse.json({ error: 'Failed to read request body.' }, { status: 400 });
@@ -248,6 +270,7 @@ export async function PATCH(
     let parsed: ParsedForm;
     try {
       parsed = await parseMultipartFromBuffer(bodyBuffer, contentType);
+      console.log(`[PATCH] Parsed files: ${parsed.files.length}`);
     } catch (parseError: any) {
       console.error('Multipart parse error:', parseError);
       return NextResponse.json(
@@ -296,6 +319,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Please fill in all required fields' }, { status: 400 });
     }
 
+    // Validate new images
     for (const file of newImages) {
       if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
         return NextResponse.json(
@@ -305,12 +329,13 @@ export async function PATCH(
       }
       if (file.size > MAX_IMAGE_SIZE) {
         return NextResponse.json(
-          { error: `Image "${file.filename}" exceeds the 5 MB limit.` },
+          { error: `Image "${file.filename}" exceeds the 20 MB limit. File size: ${(file.size / 1024 / 1024).toFixed(2)} MB` },
           { status: 400 }
         );
       }
     }
 
+    // Validate new videos
     for (const file of newVideos) {
       if (!ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
         return NextResponse.json(
@@ -320,7 +345,7 @@ export async function PATCH(
       }
       if (file.size > MAX_VIDEO_SIZE) {
         return NextResponse.json(
-          { error: `Video "${file.filename}" exceeds the 250 MB limit.` },
+          { error: `Video "${file.filename}" exceeds the 250 MB limit. File size: ${(file.size / 1024 / 1024).toFixed(2)} MB` },
           { status: 400 }
         );
       }
@@ -333,7 +358,7 @@ export async function PATCH(
         [warehouseId]
       );
       const existingCount = parseInt(existingImagesResult.rows[0]?.count ?? '0', 10);
-      const deletedCount  = deletedImageIdsStr ? (JSON.parse(deletedImageIdsStr) as number[]).length : 0;
+      const deletedCount = deletedImageIdsStr ? (JSON.parse(deletedImageIdsStr) as number[]).length : 0;
       if (existingCount - deletedCount + newImages.length > MAX_IMAGES) {
         return NextResponse.json(
           { error: `Maximum ${MAX_IMAGES} images allowed per property.` },
@@ -406,8 +431,8 @@ export async function PATCH(
         contactPersonName, contactPersonPhone,
         contactPersonAlternatePhone,
         contactPersonEmail, contactPersonDesignation,
-        latitude  ? parseFloat(latitude)  : null,
-        longitude ? parseFloat(longitude) : null,
+        latitude ? parseFloat(latitude as string) : null,
+        longitude ? parseFloat(longitude as string) : null,
         JSON.stringify(amenities), isPriceNegotiable,
         state_code,
         warehouseId, session.agentId,
@@ -434,22 +459,30 @@ export async function PATCH(
       );
       const startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
 
-      await Promise.all(
-        newImages.map(async (file, idx) => {
-          const ext       = file.filename.split('.').pop();
-          const rand      = randomBytes(16).toString('hex');
-          const s3Key     = `${session.agentId}/warehouses/${warehouseId}/images/${Date.now()}-${rand}.${ext}`;
-          const s3Url     = await uploadToS3(file.buffer, file.mimetype, s3Key);
+      const imagePromises = newImages.map(async (file, idx) => {
+        try {
+          const ext = file.filename.split('.').pop();
+          const rand = randomBytes(16).toString('hex');
+          const s3Key = `${session.agentId}/warehouses/${warehouseId}/images/${Date.now()}-${rand}.${ext}`;
+          
+          console.log(`[PATCH-IMAGE] Uploading ${file.filename}...`);
+          const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
 
           await query(
             `INSERT INTO uploads
              (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
             [session.agentId, warehouseId, startOrder + idx, false,
-             file.filename, file.mimetype, file.size, s3Key, s3Url]
+              file.filename, file.mimetype, file.size, s3Key, s3Url]
           );
-        })
-      );
+          console.log(`[PATCH-IMAGE] Successfully uploaded ${file.filename}`);
+        } catch (error) {
+          console.error(`[PATCH-IMAGE] Failed to upload ${file.filename}:`, error);
+          throw error;
+        }
+      });
+
+      await Promise.all(imagePromises);
     }
 
     // ── Upload new videos concurrently ────────────────────────────────────
@@ -461,22 +494,30 @@ export async function PATCH(
       );
       const startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
 
-      await Promise.all(
-        newVideos.map(async (file, idx) => {
-          const ext       = file.filename.split('.').pop();
-          const rand      = randomBytes(16).toString('hex');
-          const s3Key     = `${session.agentId}/warehouses/${warehouseId}/videos/${Date.now()}-${rand}.${ext}`;
-          const s3Url     = await uploadToS3(file.buffer, file.mimetype, s3Key);
+      const videoPromises = newVideos.map(async (file, idx) => {
+        try {
+          const ext = file.filename.split('.').pop();
+          const rand = randomBytes(16).toString('hex');
+          const s3Key = `${session.agentId}/warehouses/${warehouseId}/videos/${Date.now()}-${rand}.${ext}`;
+          
+          console.log(`[PATCH-VIDEO] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB)...`);
+          const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
 
           await query(
             `INSERT INTO uploads
              (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
             [session.agentId, warehouseId, startOrder + idx, false,
-             file.filename, file.mimetype, file.size, s3Key, s3Url]
+              file.filename, file.mimetype, file.size, s3Key, s3Url]
           );
-        })
-      );
+          console.log(`[PATCH-VIDEO] Successfully uploaded ${file.filename}`);
+        } catch (error) {
+          console.error(`[PATCH-VIDEO] Failed to upload ${file.filename}:`, error);
+          throw error;
+        }
+      });
+
+      await Promise.all(videoPromises);
     }
 
     return NextResponse.json({
@@ -486,6 +527,9 @@ export async function PATCH(
 
   } catch (error) {
     console.error('Update property error:', error);
-    return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to update property: ${(error as any).message}` },
+      { status: 500 }
+    );
   }
 }
