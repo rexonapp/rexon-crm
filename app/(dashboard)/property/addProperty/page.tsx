@@ -1213,12 +1213,12 @@ export default function WarehouseUploadForm() {
                               size="icon"
                               variant="destructive"
                               onClick={e => { e.stopPropagation(); confirmDeleteImage(index); }}
-                              className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 shadow-lg"
+                              className="absolute -top-2 -right-2 z-20 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-white shadow-lg"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                             <div
-                              className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                              className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 rounded-lg transition-all flex items-center justify-center cursor-pointer"
                               onClick={() => openGallery(index)}
                             >
                               <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
