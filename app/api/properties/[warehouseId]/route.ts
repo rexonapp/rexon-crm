@@ -10,8 +10,6 @@ import { Readable } from 'stream';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Vercel timeout — increase for large file uploads
-// NOTE: Vercel Pro allows up to 900 seconds; standard is 60 seconds
 export const maxDuration = 300;
 
 // ── Shared constants ─────────────────────────────────────────────────────────

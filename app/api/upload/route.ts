@@ -12,9 +12,8 @@ import { notifyPropertyAdded } from '@/lib/notifyPropertyAdded';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Vercel serverless function timeout — increase for large uploads
-// Maximum on Vercel Pro is 900 seconds; on standard is 60 seconds
-export const maxDuration = 900;
+
+export const maxDuration = 300;
 export const fetchCache = 'force-no-store';
 
 const s3Client = new S3Client({
