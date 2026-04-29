@@ -16,6 +16,8 @@ export const runtime = 'nodejs';
 // truncate the request before we can stream it through busboy.
 // This is the correct per-route-segment override for App Router route handlers.
 export const maxDuration = 60; // seconds — give large uploads enough time
+export const fetchCache = 'force-no-store';
+
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-south-2',
@@ -26,8 +28,8 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = 'rexon-web';
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;    // 5 MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024;  // 100 MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;    // 5 MB
+const MAX_VIDEO_SIZE = 250 * 1024 * 1024;  // 100 MB
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 2;
 

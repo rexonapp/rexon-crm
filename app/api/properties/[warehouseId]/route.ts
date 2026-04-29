@@ -1,8 +1,119 @@
 // app/api/properties/[warehouseId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { query } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { randomBytes } from 'crypto';
+import Busboy from 'busboy';
+import { Readable } from 'stream';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+// ── Shared constants ─────────────────────────────────────────────────────────
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;     // 5 MB
+const MAX_VIDEO_SIZE = 250 * 1024 * 1024;   // 250 MB
+const MAX_IMAGES = 10;
+const MAX_VIDEOS = 2;
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+
+const BUCKET_NAME = 'rexon-web';
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'ap-south-2',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+// ── Types ────────────────────────────────────────────────────────────────────
+interface ParsedFile {
+  fieldname: string;
+  filename: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+}
+
+interface ParsedForm {
+  fields: Record<string, string>;
+  files: ParsedFile[];
+}
+
+// ── Busboy multipart parser (same approach as /api/upload) ───────────────────
+// Uses request.arrayBuffer() to get the COMPLETE body that Next.js has already
+// buffered, then feeds it into busboy — avoids the 10 MB truncation that
+// happens when piping request.body (a Web ReadableStream) directly.
+function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<ParsedForm> {
+  return new Promise((resolve, reject) => {
+    const bb = Busboy({
+      headers: { 'content-type': contentType },
+      limits: {
+        fileSize: MAX_VIDEO_SIZE,           // largest single file allowed
+        files: MAX_IMAGES + MAX_VIDEOS,
+        fields: 50,
+        fieldSize: 1 * 1024 * 1024,
+      },
+    });
+
+    const fields: Record<string, string> = {};
+    const files: ParsedFile[] = [];
+    const errors: string[] = [];
+
+    bb.on('field', (name: string, value: string) => {
+      fields[name] = value;
+    });
+
+    bb.on('file', (fieldname: string, fileStream: any, info: any) => {
+      const { filename, mimeType } = info;
+      const chunks: Buffer[] = [];
+      let size = 0;
+
+      fileStream.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        chunks.push(chunk);
+      });
+
+      fileStream.on('limit', () => {
+        errors.push(`File "${filename}" exceeds the allowed size limit.`);
+        fileStream.resume();
+      });
+
+      fileStream.on('end', () => {
+        if (errors.length === 0) {
+          files.push({ fieldname, filename, mimetype: mimeType, buffer: Buffer.concat(chunks), size });
+        }
+      });
+    });
+
+    bb.on('error', (err: Error) => reject(err));
+    bb.on('finish', () => {
+      if (errors.length > 0) return reject(new Error(errors[0]));
+      resolve({ fields, files });
+    });
+
+    Readable.from(buffer).pipe(bb);
+  });
+}
+
+// ── S3 helper ────────────────────────────────────────────────────────────────
+async function uploadToS3(buffer: Buffer, mimetype: string, s3Key: string): Promise<string> {
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+      Body: buffer,
+      ContentType: mimetype,
+    })
+  );
+  return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+}
+
+// ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ warehouseId: string }> }
@@ -14,14 +125,16 @@ export async function GET(
     }
 
     const { warehouseId } = await params;
-console.log(warehouseId, "warehouseId")
+    console.log(warehouseId, 'warehouseId');
+
     const result = await query(
       `SELECT id, property_name, title, description, property_type,
               space_available, space_unit, warehouse_size, available_from,
-              price_type, price_per_sqft,total_price,
+              price_type, price_per_sqft, total_price,
               address, city, state, pincode, road_connectivity,
-              contact_person_name, contact_person_phone,contact_person_alternate, contact_person_email, contact_person_designation,
-              latitude, longitude, amenities,is_price_negotiable,
+              contact_person_name, contact_person_phone, contact_person_alternate,
+              contact_person_email, contact_person_designation,
+              latitude, longitude, amenities, is_price_negotiable,
               is_verified, is_featured, status, created_at, updated_at, state_code, property_code
        FROM warehouses
        WHERE id = $1 AND user_id = $2`,
@@ -51,14 +164,11 @@ console.log(warehouseId, "warehouseId")
     );
 
     if (result1.rows.length === 0) {
-      return NextResponse.json(
-        { error: "PropertyDetails not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'PropertyDetails not found' }, { status: 404 });
     }
 
     const propertyDetails = result1.rows[0];
-    // Fetch associated media
+
     const mediaResult = await query(
       `SELECT id, file_name, file_type, file_size, s3_url, is_primary, image_order, created_at
        FROM uploads
@@ -67,10 +177,9 @@ console.log(warehouseId, "warehouseId")
       [warehouseId]
     );
 
-    const images = mediaResult.rows.filter(m => m.file_type?.startsWith('image/'));
-    const videos = mediaResult.rows.filter(m => m.file_type?.startsWith('video/'));
+    const images = mediaResult.rows.filter((m: any) => m.file_type?.startsWith('image/'));
+    const videos = mediaResult.rows.filter((m: any) => m.file_type?.startsWith('video/'));
 
-    // Parse amenities
     let amenities = [];
     if (warehouse.amenities) {
       try {
@@ -97,6 +206,7 @@ console.log(warehouseId, "warehouseId")
   }
 }
 
+// ── PATCH ─────────────────────────────────────────────────────────────────────
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ warehouseId: string }> }
@@ -108,8 +218,8 @@ export async function PATCH(
     }
 
     const { warehouseId } = await params;
-    const formData = await request.formData();
-    // Verify ownership
+
+    // ── Verify ownership before doing any heavy work ──────────────────────
     const ownerCheck = await query(
       'SELECT id FROM warehouses WHERE id = $1 AND user_id = $2',
       [warehouseId, session.agentId]
@@ -117,62 +227,156 @@ export async function PATCH(
     if (ownerCheck.rows.length === 0) {
       return NextResponse.json({ error: 'Property not found or access denied' }, { status: 404 });
     }
- console.log(formData, "formatdata")
-    // Extract fields
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string || '';
-    const propertyType = formData.get('propertyType') as string;
-    const totalArea = formData.get('totalArea') as string;
-    const sizeUnit = formData.get('sizeUnit') as string || 'sqft';
-    const availableFrom = formData.get('availableFrom') as string;
-    const listingType = formData.get('listingType') as string;
-    const pricePerSqFt = formData.get('pricePerSqFt') as string;
-    const contactPersonAlternatePhone = formData.get('contactPersonAlternatePhone') as string || null;
-    const isPriceNegotiable           = formData.get('isPriceNegotiable') === 'true';
-    const totalPrice                  = formData.get('totalPrice') as string;
-    const totalPriceVal               = totalPrice ? parseFloat(totalPrice) : null;
-    const address = formData.get('address') as string;
-    const city = formData.get('city') as string;
-    const state = formData.get('state') as string;
-    const state_code = formData.get('state_code') as string;
-    const pincode = formData.get('pincode') as string || null;
-    const roadConnectivity = formData.get('roadConnectivity') as string || null;
-    const latitude = formData.get('latitude') as string || null;
-    const longitude = formData.get('longitude') as string || null;
-    const contactPersonName = formData.get('contactPersonName') as string || '';
-    const contactPersonPhone = formData.get('contactPersonPhone') as string || '';
-    const contactPersonEmail = formData.get('contactPersonEmail') as string || '';
-    const contactPersonDesignation = formData.get('contactPersonDesignation') as string || '';
-    const amenitiesStr = formData.get('amenities') as string;
-    const amenities = amenitiesStr ? JSON.parse(amenitiesStr) : [];
-    const deletedImageIds = formData.get('deletedImageIds') as string;
-    const newImages = formData.getAll('newImages') as File[];
-    const newVideos = formData.getAll('newVideos') as File[];
 
-    if (!title || !propertyType || !totalArea || !availableFrom || !listingType || !pricePerSqFt || !address || !city || !state) {
+    const contentType = request.headers.get('content-type') || '';
+
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json({ error: 'Content-Type must be multipart/form-data' }, { status: 400 });
+    }
+
+    // ── Read full body buffer (same fix as /api/upload) ───────────────────
+    let bodyBuffer: Buffer;
+    try {
+      const arrayBuffer = await request.arrayBuffer();
+      bodyBuffer = Buffer.from(arrayBuffer);
+    } catch (e: any) {
+      console.error('Failed to read request body:', e);
+      return NextResponse.json({ error: 'Failed to read request body.' }, { status: 400 });
+    }
+
+    // ── Parse multipart via busboy ────────────────────────────────────────
+    let parsed: ParsedForm;
+    try {
+      parsed = await parseMultipartFromBuffer(bodyBuffer, contentType);
+    } catch (parseError: any) {
+      console.error('Multipart parse error:', parseError);
       return NextResponse.json(
-        { error: 'Please fill in all required fields' },
+        { error: parseError.message || 'Failed to read upload data. Check file sizes and try again.' },
         { status: 400 }
       );
     }
 
-    // Map property type
+    const { fields, files } = parsed;
+
+    // ── Extract fields ────────────────────────────────────────────────────
+    const title                       = fields['title'] ?? '';
+    const description                 = fields['description'] ?? '';
+    const propertyType                = fields['propertyType'] ?? '';
+    const totalArea                   = fields['totalArea'] ?? '';
+    const sizeUnit                    = fields['sizeUnit'] ?? 'sqft';
+    const availableFrom               = fields['availableFrom'] ?? '';
+    const listingType                 = fields['listingType'] ?? '';
+    const pricePerSqFt                = fields['pricePerSqFt'] ?? '';
+    const contactPersonAlternatePhone = fields['contactPersonAlternatePhone'] ?? null;
+    const isPriceNegotiable           = fields['isPriceNegotiable'] === 'true';
+    const totalPrice                  = fields['totalPrice'] ?? '';
+    const totalPriceVal               = totalPrice ? parseFloat(totalPrice) : null;
+    const address                     = fields['address'] ?? '';
+    const city                        = fields['city'] ?? '';
+    const state                       = fields['state'] ?? '';
+    const state_code                  = fields['state_code'] ?? '';
+    const pincode                     = fields['pincode'] ?? null;
+    const roadConnectivity            = fields['roadConnectivity'] ?? null;
+    const latitude                    = fields['latitude'] ?? null;
+    const longitude                   = fields['longitude'] ?? null;
+    const contactPersonName           = fields['contactPersonName'] ?? '';
+    const contactPersonPhone          = fields['contactPersonPhone'] ?? '';
+    const contactPersonEmail          = fields['contactPersonEmail'] ?? '';
+    const contactPersonDesignation    = fields['contactPersonDesignation'] ?? '';
+    const amenitiesStr                = fields['amenities'] ?? '[]';
+    const amenities                   = JSON.parse(amenitiesStr);
+    const deletedImageIdsStr          = fields['deletedImageIds'] ?? '';
+
+    // ── Split files by field name ─────────────────────────────────────────
+    const newImages = files.filter(f => f.fieldname === 'newImages');
+    const newVideos = files.filter(f => f.fieldname === 'newVideos');
+
+    // ── Validation ────────────────────────────────────────────────────────
+    if (!title || !propertyType || !totalArea || !availableFrom || !listingType || !pricePerSqFt || !address || !city || !state) {
+      return NextResponse.json({ error: 'Please fill in all required fields' }, { status: 400 });
+    }
+
+    for (const file of newImages) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+        return NextResponse.json(
+          { error: `Invalid image type for "${file.filename}". Only JPG, PNG, GIF, and WebP are allowed.` },
+          { status: 400 }
+        );
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        return NextResponse.json(
+          { error: `Image "${file.filename}" exceeds the 5 MB limit.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    for (const file of newVideos) {
+      if (!ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
+        return NextResponse.json(
+          { error: `Invalid video type for "${file.filename}". Only MP4, MOV, AVI, and WebM are allowed.` },
+          { status: 400 }
+        );
+      }
+      if (file.size > MAX_VIDEO_SIZE) {
+        return NextResponse.json(
+          { error: `Video "${file.filename}" exceeds the 250 MB limit.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ── Validate total media count won't exceed limits ────────────────────
+    if (newImages.length > 0) {
+      const existingImagesResult = await query(
+        `SELECT COUNT(*) as count FROM uploads WHERE warehouse_id = $1 AND status = 'Active' AND file_type LIKE 'image/%'`,
+        [warehouseId]
+      );
+      const existingCount = parseInt(existingImagesResult.rows[0]?.count ?? '0', 10);
+      const deletedCount  = deletedImageIdsStr ? (JSON.parse(deletedImageIdsStr) as number[]).length : 0;
+      if (existingCount - deletedCount + newImages.length > MAX_IMAGES) {
+        return NextResponse.json(
+          { error: `Maximum ${MAX_IMAGES} images allowed per property.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (newVideos.length > 0) {
+      const existingVideosResult = await query(
+        `SELECT COUNT(*) as count FROM uploads WHERE warehouse_id = $1 AND status = 'Active' AND file_type LIKE 'video/%'`,
+        [warehouseId]
+      );
+      const existingCount = parseInt(existingVideosResult.rows[0]?.count ?? '0', 10);
+      if (existingCount + newVideos.length > MAX_VIDEOS) {
+        return NextResponse.json(
+          { error: `Maximum ${MAX_VIDEOS} videos allowed per property.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ── Type normalisation ────────────────────────────────────────────────
     const propertyTypeMap: Record<string, string> = {
-      'Warehouse':            'Warehouse',
-      'Cold Storage':         'Cold Storage',
-      'Industrial Shed':      'Industrial Shed',
-      'Manufacturing Unit':   'Manufacturing Unit',
-      'Godown':               'Godown',
-      'Factory Space':        'Factory Space',
-      'Logistics Hub':        'Logistics Hub',
-      'Distribution Center':  'Distribution Center',
+      'Warehouse':           'Warehouse',
+      'Cold Storage':        'Cold Storage',
+      'Industrial Shed':     'Industrial Shed',
+      'Manufacturing Unit':  'Manufacturing Unit',
+      'Godown':              'Godown',
+      'Factory Space':       'Factory Space',
+      'Logistics Hub':       'Logistics Hub',
+      'Distribution Center': 'Distribution Center',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
 
     const roadConnectivityMap: Record<string, string> = {
-      'National Highway': 'National Highway', 'State Highway': 'State Highway',
-      'Main Road': 'City Road', 'Interior Road': 'Other', 'Service Road': 'Other',
-      'City Road': 'City Road', 'Other': 'Other',
+      'National Highway': 'National Highway',
+      'State Highway':    'State Highway',
+      'Main Road':        'City Road',
+      'Interior Road':    'Other',
+      'Service Road':     'Other',
+      'City Road':        'City Road',
+      'Other':            'Other',
     };
     const normalizedRoadConnectivity = roadConnectivity
       ? roadConnectivityMap[roadConnectivity] || 'Other'
@@ -180,6 +384,7 @@ export async function PATCH(
 
     const priceType = listingType === 'rent' ? 'Rent' : listingType === 'sale' ? 'Sale' : 'Lease';
 
+    // ── Update warehouse row ──────────────────────────────────────────────
     await query(
       `UPDATE warehouses SET
         property_name = $1, title = $2, description = $3, property_type = $4,
@@ -194,24 +399,24 @@ export async function PATCH(
         status = 'Pending', updated_at = NOW(), state_code = $26
        WHERE id = $27 AND user_id = $28`,
       [
-        title, title, description, normalizedPropertyType,          // $1–$4
-        parseFloat(totalArea), sizeUnit, parseFloat(totalArea), availableFrom, // $5–$8
-        priceType, parseFloat(pricePerSqFt), totalPriceVal,         // $9–$11
-        address, city, state, pincode, normalizedRoadConnectivity,  // $12–$16
-        contactPersonName, contactPersonPhone,                       // $17–$18
-        contactPersonAlternatePhone,                                 // $19
-        contactPersonEmail, contactPersonDesignation,               // $20–$21
-        latitude ? parseFloat(latitude) : null,                     // $22
-        longitude ? parseFloat(longitude) : null,                   // $23
-        JSON.stringify(amenities), isPriceNegotiable,               // $24–$25
-        state_code,                                                  // $26
-        warehouseId, session.agentId,                               // $27–$28
+        title, title, description, normalizedPropertyType,
+        parseFloat(totalArea), sizeUnit, parseFloat(totalArea), availableFrom,
+        priceType, parseFloat(pricePerSqFt), totalPriceVal,
+        address, city, state, pincode, normalizedRoadConnectivity,
+        contactPersonName, contactPersonPhone,
+        contactPersonAlternatePhone,
+        contactPersonEmail, contactPersonDesignation,
+        latitude  ? parseFloat(latitude)  : null,
+        longitude ? parseFloat(longitude) : null,
+        JSON.stringify(amenities), isPriceNegotiable,
+        state_code,
+        warehouseId, session.agentId,
       ]
     );
 
-    // Delete removed images
-    if (deletedImageIds) {
-      const ids = JSON.parse(deletedImageIds) as number[];
+    // ── Soft-delete removed images ────────────────────────────────────────
+    if (deletedImageIdsStr) {
+      const ids = JSON.parse(deletedImageIdsStr) as number[];
       if (ids.length > 0) {
         await query(
           `UPDATE uploads SET status = 'Deleted' WHERE id = ANY($1) AND warehouse_id = $2`,
@@ -220,83 +425,58 @@ export async function PATCH(
       }
     }
 
-    // Upload new images
+    // ── Upload new images concurrently ────────────────────────────────────
     if (newImages.length > 0) {
-      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-      const { randomBytes } = await import('crypto');
-
-      const s3Client = new S3Client({
-        region: process.env.AWS_REGION || 'ap-south-2',
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        },
-      });
-      const BUCKET_NAME = 'rexon-web';
-
-      // Get current max image_order
       const orderResult = await query(
-        'SELECT COALESCE(MAX(image_order), -1) as max_order FROM uploads WHERE warehouse_id = $1 AND status = $2 AND file_type LIKE $3',
-        [warehouseId, 'Active', 'image/%']
+        `SELECT COALESCE(MAX(image_order), -1) AS max_order
+         FROM uploads WHERE warehouse_id = $1 AND status = 'Active' AND file_type LIKE 'image/%'`,
+        [warehouseId]
       );
-      let startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
+      const startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
 
-      const uploadPromises = newImages.map(async (file, idx) => {
-        const ext = file.name.split('.').pop();
-        const rand = randomBytes(16).toString('hex');
-        const s3Key = `${session.agentId}/warehouses/${warehouseId}/images/${Date.now()}-${rand}.${ext}`;
-        const buffer = Buffer.from(await file.arrayBuffer());
-        await s3Client.send(new PutObjectCommand({
-          Bucket: BUCKET_NAME, Key: s3Key, Body: buffer, ContentType: file.type,
-        }));
-        const s3Url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
-        await query(
-          `INSERT INTO uploads (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Active')`,
-          [session.agentId, warehouseId, startOrder + idx, false, file.name, file.type, file.size, s3Key, s3Url]
-        );
-      });
+      await Promise.all(
+        newImages.map(async (file, idx) => {
+          const ext       = file.filename.split('.').pop();
+          const rand      = randomBytes(16).toString('hex');
+          const s3Key     = `${session.agentId}/warehouses/${warehouseId}/images/${Date.now()}-${rand}.${ext}`;
+          const s3Url     = await uploadToS3(file.buffer, file.mimetype, s3Key);
 
-      await Promise.all(uploadPromises);
+          await query(
+            `INSERT INTO uploads
+             (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
+            [session.agentId, warehouseId, startOrder + idx, false,
+             file.filename, file.mimetype, file.size, s3Key, s3Url]
+          );
+        })
+      );
     }
 
-    // Upload new videos
+    // ── Upload new videos concurrently ────────────────────────────────────
     if (newVideos.length > 0) {
-      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-      const { randomBytes } = await import('crypto');
-
-      const s3Client = new S3Client({
-        region: process.env.AWS_REGION || 'ap-south-2',
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        },
-      });
-      const BUCKET_NAME = 'rexon-web';
-
       const orderResult = await query(
-        'SELECT COALESCE(MAX(image_order), -1) as max_order FROM uploads WHERE warehouse_id = $1 AND status = $2 AND file_type LIKE $3',
-        [warehouseId, 'Active', 'video/%']
+        `SELECT COALESCE(MAX(image_order), -1) AS max_order
+         FROM uploads WHERE warehouse_id = $1 AND status = 'Active' AND file_type LIKE 'video/%'`,
+        [warehouseId]
       );
-      let startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
+      const startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
 
-      const uploadPromises = newVideos.map(async (file, idx) => {
-        const ext = file.name.split('.').pop();
-        const rand = randomBytes(16).toString('hex');
-        const s3Key = `${session.agentId}/warehouses/${warehouseId}/videos/${Date.now()}-${rand}.${ext}`;
-        const buffer = Buffer.from(await file.arrayBuffer());
-        await s3Client.send(new PutObjectCommand({
-          Bucket: BUCKET_NAME, Key: s3Key, Body: buffer, ContentType: file.type,
-        }));
-        const s3Url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
-        await query(
-          `INSERT INTO uploads (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Active')`,
-          [session.agentId, warehouseId, startOrder + idx, false, file.name, file.type, file.size, s3Key, s3Url]
-        );
-      });
+      await Promise.all(
+        newVideos.map(async (file, idx) => {
+          const ext       = file.filename.split('.').pop();
+          const rand      = randomBytes(16).toString('hex');
+          const s3Key     = `${session.agentId}/warehouses/${warehouseId}/videos/${Date.now()}-${rand}.${ext}`;
+          const s3Url     = await uploadToS3(file.buffer, file.mimetype, s3Key);
 
-      await Promise.all(uploadPromises);
+          await query(
+            `INSERT INTO uploads
+             (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
+            [session.agentId, warehouseId, startOrder + idx, false,
+             file.filename, file.mimetype, file.size, s3Key, s3Url]
+          );
+        })
+      );
     }
 
     return NextResponse.json({
