@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,20 +14,18 @@ import Link from "next/link";
    ───────────────────────────────────────────── */
 function RexonLogo() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-brand-secondary rounded-lg flex items-center justify-center">
-        <span className="text-[16px] font-extrabold text-white tracking-tight">
-          R
-        </span>
-      </div>
-      <div>
-        <div className="text-[18px] font-semibold text-foreground leading-tight tracking-tight">
-          Rexon
-        </div>
-        <div className="text-[12px] text-muted-foreground font-medium tracking-wide leading-tight mt-0.5">
-          Agent Portal
-        </div>
-      </div>
+    <div className="flex flex-col items-center gap-2">
+      <Image
+        src="/rexon-logo.png"
+        alt="Rexon logo"
+        width={180}
+        height={48}
+        priority
+        className="h-auto w-[160px] md:w-[180px]"
+      />
+      <p className="text-[12px] text-muted-foreground font-medium tracking-wide leading-tight">
+        Agent Portal
+      </p>
     </div>
   );
 }
@@ -36,7 +34,6 @@ function RexonLogo() {
    FORGOT PASSWORD PAGE
    ───────────────────────────────────────────── */
 export default function AgentForgotPasswordPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

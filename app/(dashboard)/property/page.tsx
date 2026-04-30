@@ -588,7 +588,7 @@ export default function MyListingsPage() {
 
         {/* ── Table Card ── */}
         <Card className="border-border bg-card shadow-none overflow-hidden">
-          <CardHeader className="pb-4 border-b border-border px-5 pt-5">
+          <CardHeader className="pb-4 border-b border-brand-secondary/25 bg-brand-secondary/10 px-5 pt-5">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-[15px] font-semibold text-foreground">Properties</CardTitle>
