@@ -238,7 +238,6 @@ export async function PATCH(
 
     const { warehouseId } = await params;
 
-    // ── Verify ownership before doing any heavy work ──────────────────────
     const ownerCheck = await query(
       'SELECT id FROM warehouses WHERE id = $1 AND user_id = $2',
       [warehouseId, session.agentId]
@@ -247,121 +246,39 @@ export async function PATCH(
       return NextResponse.json({ error: 'Property not found or access denied' }, { status: 404 });
     }
 
-    const contentType = request.headers.get('content-type') || '';
+    // Now accepts JSON instead of multipart
+    const body = await request.json();
 
-    if (!contentType.includes('multipart/form-data')) {
-      return NextResponse.json({ error: 'Content-Type must be multipart/form-data' }, { status: 400 });
-    }
+    const {
+      title, description, propertyType, totalArea, sizeUnit,
+      availableFrom, listingType, pricePerSqFt, totalPrice,
+      address, city, state, state_code, pincode, roadConnectivity,
+      latitude, longitude, contactPersonName, contactPersonPhone,
+      contactPersonAlternatePhone, isPriceNegotiable,
+      contactPersonEmail, contactPersonDesignation, amenities,
+      deletedImageIds = [],
+      deletedVideoIds = [],
+      // Array of { s3Key, s3Url, fieldname, filename, mimetype, size }
+      uploadedFiles = [],
+    } = body;
 
-    // ── Read full body buffer (same fix as /api/upload) ───────────────────
-    let bodyBuffer: Buffer;
-    try {
-      const arrayBuffer = await request.arrayBuffer();
-      bodyBuffer = Buffer.from(arrayBuffer);
-      console.log(`[PATCH] Request body size: ${(bodyBuffer.length / 1024 / 1024).toFixed(2)} MB`);
-    } catch (e: any) {
-      console.error('Failed to read request body:', e);
-      return NextResponse.json({ error: 'Failed to read request body.' }, { status: 400 });
-    }
-
-    // ── Parse multipart via busboy ────────────────────────────────────────
-    let parsed: ParsedForm;
-    try {
-      parsed = await parseMultipartFromBuffer(bodyBuffer, contentType);
-      console.log(`[PATCH] Parsed files: ${parsed.files.length}`);
-    } catch (parseError: any) {
-      console.error('Multipart parse error:', parseError);
-      return NextResponse.json(
-        { error: parseError.message || 'Failed to read upload data. Check file sizes and try again.' },
-        { status: 400 }
-      );
-    }
-
-    const { fields, files } = parsed;
-
-    // ── Extract fields ────────────────────────────────────────────────────
-    const title                       = fields['title'] ?? '';
-    const description                 = fields['description'] ?? '';
-    const propertyType                = fields['propertyType'] ?? '';
-    const totalArea                   = fields['totalArea'] ?? '';
-    const sizeUnit                    = fields['sizeUnit'] ?? 'sqft';
-    const availableFrom               = fields['availableFrom'] ?? '';
-    const listingType                 = fields['listingType'] ?? '';
-    const pricePerSqFt                = fields['pricePerSqFt'] ?? '';
-    const contactPersonAlternatePhone = fields['contactPersonAlternatePhone'] ?? null;
-    const isPriceNegotiable           = fields['isPriceNegotiable'] === 'true';
-    const totalPrice                  = fields['totalPrice'] ?? '';
-    const totalPriceVal               = totalPrice ? parseFloat(totalPrice) : null;
-    const address                     = fields['address'] ?? '';
-    const city                        = fields['city'] ?? '';
-    const state                       = fields['state'] ?? '';
-    const state_code                  = fields['state_code'] ?? '';
-    const pincode                     = fields['pincode'] ?? null;
-    const roadConnectivity            = fields['roadConnectivity'] ?? null;
-    const latitude                    = fields['latitude'] ?? null;
-    const longitude                   = fields['longitude'] ?? null;
-    const contactPersonName           = fields['contactPersonName'] ?? '';
-    const contactPersonPhone          = fields['contactPersonPhone'] ?? '';
-    const contactPersonEmail          = fields['contactPersonEmail'] ?? '';
-    const contactPersonDesignation    = fields['contactPersonDesignation'] ?? '';
-    const amenitiesStr                = fields['amenities'] ?? '[]';
-    const amenities                   = JSON.parse(amenitiesStr);
-    const deletedImageIdsStr          = fields['deletedImageIds'] ?? '';
-
-    // ── Split files by field name ─────────────────────────────────────────
-    const newImages = files.filter(f => f.fieldname === 'newImages');
-    const newVideos = files.filter(f => f.fieldname === 'newVideos');
-
-    // ── Validation ────────────────────────────────────────────────────────
     if (!title || !propertyType || !totalArea || !availableFrom || !listingType || !pricePerSqFt || !address || !city || !state) {
       return NextResponse.json({ error: 'Please fill in all required fields' }, { status: 400 });
     }
 
-    // Validate new images
-    for (const file of newImages) {
-      if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
-        return NextResponse.json(
-          { error: `Invalid image type for "${file.filename}". Only JPG, PNG, GIF, and WebP are allowed.` },
-          { status: 400 }
-        );
-      }
-      if (file.size > MAX_IMAGE_SIZE) {
-        return NextResponse.json(
-          { error: `Image "${file.filename}" exceeds the 20 MB limit. File size: ${(file.size / 1024 / 1024).toFixed(2)} MB` },
-          { status: 400 }
-        );
-      }
-    }
+    const newImages = uploadedFiles.filter((f: any) => f.fieldname === 'newImages');
+    const newVideos = uploadedFiles.filter((f: any) => f.fieldname === 'newVideos');
 
-    // Validate new videos
-    for (const file of newVideos) {
-      if (!ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
-        return NextResponse.json(
-          { error: `Invalid video type for "${file.filename}". Only MP4, MOV, AVI, and WebM are allowed.` },
-          { status: 400 }
-        );
-      }
-      if (file.size > MAX_VIDEO_SIZE) {
-        return NextResponse.json(
-          { error: `Video "${file.filename}" exceeds the 250 MB limit. File size: ${(file.size / 1024 / 1024).toFixed(2)} MB` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // ── Validate total media count won't exceed limits ────────────────────
+    // Validate total media count
     if (newImages.length > 0) {
       const existingImagesResult = await query(
         `SELECT COUNT(*) as count FROM uploads WHERE warehouse_id = $1 AND status = 'Active' AND file_type LIKE 'image/%'`,
         [warehouseId]
       );
       const existingCount = parseInt(existingImagesResult.rows[0]?.count ?? '0', 10);
-      const deletedCount = deletedImageIdsStr ? (JSON.parse(deletedImageIdsStr) as number[]).length : 0;
+      const deletedCount = deletedImageIds.length;
       if (existingCount - deletedCount + newImages.length > MAX_IMAGES) {
-        return NextResponse.json(
-          { error: `Maximum ${MAX_IMAGES} images allowed per property.` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Maximum ${MAX_IMAGES} images allowed per property.` }, { status: 400 });
       }
     }
 
@@ -371,43 +288,33 @@ export async function PATCH(
         [warehouseId]
       );
       const existingCount = parseInt(existingVideosResult.rows[0]?.count ?? '0', 10);
-      if (existingCount + newVideos.length > MAX_VIDEOS) {
-        return NextResponse.json(
-          { error: `Maximum ${MAX_VIDEOS} videos allowed per property.` },
-          { status: 400 }
-        );
+      if (existingCount - deletedVideoIds.length + newVideos.length > MAX_VIDEOS) {
+        return NextResponse.json({ error: `Maximum ${MAX_VIDEOS} videos allowed per property.` }, { status: 400 });
       }
     }
 
-    // ── Type normalisation ────────────────────────────────────────────────
+    // Type normalisation
     const propertyTypeMap: Record<string, string> = {
-      'Warehouse':           'Warehouse',
-      'Cold Storage':        'Cold Storage',
-      'Industrial Shed':     'Industrial Shed',
-      'Manufacturing Unit':  'Manufacturing Unit',
-      'Godown':              'Godown',
-      'Factory Space':       'Factory Space',
-      'Logistics Hub':       'Logistics Hub',
-      'Distribution Center': 'Distribution Center',
+      'Warehouse': 'Warehouse', 'Cold Storage': 'Cold Storage',
+      'Industrial Shed': 'Industrial Shed', 'Manufacturing Unit': 'Manufacturing Unit',
+      'Godown': 'Godown', 'Factory Space': 'Factory Space',
+      'Logistics Hub': 'Logistics Hub', 'Distribution Center': 'Distribution Center',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
 
     const roadConnectivityMap: Record<string, string> = {
-      'National Highway': 'National Highway',
-      'State Highway':    'State Highway',
-      'Main Road':        'City Road',
-      'Interior Road':    'Other',
-      'Service Road':     'Other',
-      'City Road':        'City Road',
-      'Other':            'Other',
+      'National Highway': 'National Highway', 'State Highway': 'State Highway',
+      'Main Road': 'City Road', 'Interior Road': 'Other',
+      'Service Road': 'Other', 'City Road': 'City Road', 'Other': 'Other',
     };
     const normalizedRoadConnectivity = roadConnectivity
       ? roadConnectivityMap[roadConnectivity] || 'Other'
       : null;
 
     const priceType = listingType === 'rent' ? 'Rent' : listingType === 'sale' ? 'Sale' : 'Lease';
+    const totalPriceVal = totalPrice ? parseFloat(totalPrice) : null;
 
-    // ── Update warehouse row ──────────────────────────────────────────────
+    // Update warehouse row
     await query(
       `UPDATE warehouses SET
         property_name = $1, title = $2, description = $3, property_type = $4,
@@ -425,30 +332,35 @@ export async function PATCH(
         title, title, description, normalizedPropertyType,
         parseFloat(totalArea), sizeUnit, parseFloat(totalArea), availableFrom,
         priceType, parseFloat(pricePerSqFt), totalPriceVal,
-        address, city, state, pincode, normalizedRoadConnectivity,
+        address, city, state, pincode || null, normalizedRoadConnectivity,
         contactPersonName, contactPersonPhone,
-        contactPersonAlternatePhone,
+        contactPersonAlternatePhone || null,
         contactPersonEmail, contactPersonDesignation,
-        latitude ? parseFloat(latitude as string) : null,
-        longitude ? parseFloat(longitude as string) : null,
-        JSON.stringify(amenities), isPriceNegotiable,
+        latitude ? parseFloat(latitude) : null,
+        longitude ? parseFloat(longitude) : null,
+        JSON.stringify(amenities ?? []), isPriceNegotiable,
         state_code,
         warehouseId, session.agentId,
       ]
     );
 
-    // ── Soft-delete removed images ────────────────────────────────────────
-    if (deletedImageIdsStr) {
-      const ids = JSON.parse(deletedImageIdsStr) as number[];
-      if (ids.length > 0) {
-        await query(
-          `UPDATE uploads SET status = 'Deleted' WHERE id = ANY($1) AND warehouse_id = $2`,
-          [ids, warehouseId]
-        );
-      }
+    // Soft-delete removed images
+    if (deletedImageIds.length > 0) {
+      await query(
+        `UPDATE uploads SET status = 'Deleted' WHERE id = ANY($1) AND warehouse_id = $2`,
+        [deletedImageIds, warehouseId]
+      );
     }
 
-    // ── Upload new images concurrently ────────────────────────────────────
+    // Soft-delete removed videos
+    if (deletedVideoIds.length > 0) {
+      await query(
+        `UPDATE uploads SET status = 'Deleted' WHERE id = ANY($1) AND warehouse_id = $2`,
+        [deletedVideoIds, warehouseId]
+      );
+    }
+
+    // Insert new image upload records (files already in S3)
     if (newImages.length > 0) {
       const orderResult = await query(
         `SELECT COALESCE(MAX(image_order), -1) AS max_order
@@ -457,33 +369,18 @@ export async function PATCH(
       );
       const startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
 
-      const imagePromises = newImages.map(async (file, idx) => {
-        try {
-          const ext = file.filename.split('.').pop();
-          const rand = randomBytes(16).toString('hex');
-          const s3Key = `${session.agentId}/warehouses/${warehouseId}/images/${Date.now()}-${rand}.${ext}`;
-          
-          console.log(`[PATCH-IMAGE] Uploading ${file.filename}...`);
-          const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
-
-          await query(
-            `INSERT INTO uploads
-             (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
-            [session.agentId, warehouseId, startOrder + idx, false,
-              file.filename, file.mimetype, file.size, s3Key, s3Url]
-          );
-          console.log(`[PATCH-IMAGE] Successfully uploaded ${file.filename}`);
-        } catch (error) {
-          console.error(`[PATCH-IMAGE] Failed to upload ${file.filename}:`, error);
-          throw error;
-        }
-      });
-
-      await Promise.all(imagePromises);
+      await Promise.all(newImages.map(async (file: any, idx: number) => {
+        await query(
+          `INSERT INTO uploads
+           (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
+          [session.agentId, warehouseId, startOrder + idx, false,
+           file.filename, file.mimetype, file.size ?? 0, file.s3Key, file.s3Url]
+        );
+      }));
     }
 
-    // ── Upload new videos concurrently ────────────────────────────────────
+    // Insert new video upload records
     if (newVideos.length > 0) {
       const orderResult = await query(
         `SELECT COALESCE(MAX(image_order), -1) AS max_order
@@ -492,42 +389,21 @@ export async function PATCH(
       );
       const startOrder = (orderResult.rows[0]?.max_order ?? -1) + 1;
 
-      const videoPromises = newVideos.map(async (file, idx) => {
-        try {
-          const ext = file.filename.split('.').pop();
-          const rand = randomBytes(16).toString('hex');
-          const s3Key = `${session.agentId}/warehouses/${warehouseId}/videos/${Date.now()}-${rand}.${ext}`;
-          
-          console.log(`[PATCH-VIDEO] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB)...`);
-          const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
-
-          await query(
-            `INSERT INTO uploads
-             (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
-            [session.agentId, warehouseId, startOrder + idx, false,
-              file.filename, file.mimetype, file.size, s3Key, s3Url]
-          );
-          console.log(`[PATCH-VIDEO] Successfully uploaded ${file.filename}`);
-        } catch (error) {
-          console.error(`[PATCH-VIDEO] Failed to upload ${file.filename}:`, error);
-          throw error;
-        }
-      });
-
-      await Promise.all(videoPromises);
+      await Promise.all(newVideos.map(async (file: any, idx: number) => {
+        await query(
+          `INSERT INTO uploads
+           (user_id, warehouse_id, image_order, is_primary, file_name, file_type, file_size, s3_key, s3_url, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active')`,
+          [session.agentId, warehouseId, startOrder + idx, false,
+           file.filename, file.mimetype, file.size ?? 0, file.s3Key, file.s3Url]
+        );
+      }));
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Property updated successfully',
-    });
+    return NextResponse.json({ success: true, message: 'Property updated successfully' });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update property error:', error);
-    return NextResponse.json(
-      { error: `Failed to update property: ${(error as any).message}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: `Failed to update property: ${error.message}` }, { status: 500 });
   }
 }

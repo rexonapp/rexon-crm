@@ -409,38 +409,103 @@ export default function WarehouseEditForm({ warehouseId, initialData }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) { toast.error('Please fill in all required fields correctly'); return; }
+    if (!validateForm()) {
+      toast.error('Please fill in all required fields correctly');
+      return;
+    }
     setUploading(true);
     setUploadProgress(0);
+  
     try {
-      const fd = new FormData();
-      Object.entries(formData).forEach(([k, v]) => {
-        if (k === 'amenities') {
-          fd.append('amenities', JSON.stringify(v));
+      // Step 1: Get presigned URLs for any new files
+      const uploadedFiles: any[] = [];
+  
+      if (newImages.length > 0 || newVideos.length > 0) {
+        const filesMeta = [
+          ...newImages.map(f => ({ filename: f.name, mimetype: f.type, fieldname: 'newImages' })),
+          ...newVideos.map(f => ({ filename: f.name, mimetype: f.type, fieldname: 'newVideos' })),
+        ];
+  
+        const presignRes = await fetch('/api/upload/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: filesMeta }),
+        });
+        if (!presignRes.ok) {
+          const err = await presignRes.json();
+          throw new Error(err.error || 'Failed to get upload URLs');
         }
-        else if (k === 'state') {
-          // ⭐ MOST IMPORTANT FIX
-          fd.append('state', v.name);
-          fd.append('state_code', v.code);
+        const { presignedUrls } = await presignRes.json();
+        setUploadProgress(10);
+  
+        // Step 2: Upload each file directly to S3
+        const allNewFiles = [...newImages, ...newVideos];
+        for (let i = 0; i < presignedUrls.length; i++) {
+          const { presignedUrl, s3Key, s3Url, fieldname, filename, mimetype } = presignedUrls[i];
+          const file = allNewFiles[i];
+  
+          const uploadRes = await fetch(presignedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+          if (!uploadRes.ok) {
+            const errText = await uploadRes.text();
+            throw new Error(`Failed to upload ${file.name}: ${errText}`);
+          }
+  
+          uploadedFiles.push({ s3Key, s3Url, fieldname, filename, mimetype, size: file.size });
+          setUploadProgress(10 + Math.round(((i + 1) / presignedUrls.length) * 75));
         }
-        else {
-          fd.append(k, (v ?? '').toString());
-        }
+      }
+  
+      setUploadProgress(90);
+  
+      // Step 3: Send metadata + s3Keys to the PATCH route (tiny JSON)
+      const res = await fetch(`/api/properties/${warehouseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          propertyType: formData.propertyType,
+          totalArea: formData.totalArea,
+          sizeUnit: formData.sizeUnit,
+          availableFrom: formData.availableFrom,
+          listingType: formData.listingType,
+          pricePerSqFt: formData.pricePerSqFt,
+          totalPrice: formData.totalPrice,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state.name,
+          state_code: formData.state.code,
+          pincode: formData.pincode,
+          roadConnectivity: formData.roadConnectivity,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          contactPersonName: formData.contactPersonName,
+          contactPersonPhone: formData.contactPersonPhone,
+          contactPersonAlternatePhone: formData.contactPersonAlternatePhone,
+          isPriceNegotiable: formData.isPriceNegotiable,
+          contactPersonEmail: formData.contactPersonEmail,
+          amenities: formData.amenities,
+          deletedImageIds,
+          deletedVideoIds,
+          uploadedFiles,
+        }),
       });
-      fd.append('deletedImageIds', JSON.stringify(deletedImageIds));
-      fd.append('deletedVideoIds', JSON.stringify(deletedVideoIds));
-      newImages.forEach(f => fd.append('newImages', f));
-      newVideos.forEach(f => fd.append('newVideos', f));
-      const interval = setInterval(() => setUploadProgress(p => p >= 90 ? p : p + 10), 300);
-      const res = await fetch(`/api/properties/${warehouseId}`, { method: 'PATCH', body: fd });
-      clearInterval(interval);
+  
       setUploadProgress(100);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Update failed');
+  
       toast.success('Property updated successfully!', { description: 'Your changes have been saved.' });
       setTimeout(() => router.push('/property'), 1800);
+  
     } catch (err) {
-      toast.error('Update failed', { description: err instanceof Error ? err.message : 'Please try again.' });
+      toast.error('Update failed', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     } finally {
       setUploading(false);
       setUploadProgress(0);
