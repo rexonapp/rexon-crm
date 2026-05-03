@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           ContentType: file.mimetype,
         });
 
-        const presignedUrl = await getSignedUrl(s3Client, command, {
+        const presignedUrl = await getSignedUrl(s3Client as any, command as any, {
           expiresIn: 3600,
           unhoistableHeaders: new Set([]),   
         });
