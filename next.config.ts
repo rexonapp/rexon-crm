@@ -24,10 +24,12 @@ const nextConfig: NextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+
   reactStrictMode: true,
   productionBrowserSourceMaps: false,
   compress: true,
   poweredByHeader: false,
+
   experimental: {
     optimizeCss: true,
     optimizePackageImports: [
@@ -36,9 +38,20 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-dropdown-menu',
     ],
     serverActions: {
-      bodySizeLimit: '250mb',
+      bodySizeLimit: '260mb',
     },
-    proxyClientMaxBodySize: 262144000,     },
+    proxyClientMaxBodySize: 262144000,   
+  },
+
+  httpAgentOptions: {
+    keepAlive: true,
+  },
+};
+
+
+(nextConfig as any).middlewareClientMaxBodySize = '260mb';
+(nextConfig as any).bodyParser = {
+  sizeLimit: '260mb',
 };
 
 export default nextConfig;

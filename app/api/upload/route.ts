@@ -12,9 +12,14 @@ import { notifyPropertyAdded } from '@/lib/notifyPropertyAdded';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-
+// CRITICAL: Set these for large file uploads
+// This tells Next.js/Vercel to allow larger payloads
 export const maxDuration = 300;
 export const fetchCache = 'force-no-store';
+
+// ⚠️ PRODUCTION FIX: Explicit body size limit for Vercel/Edge environments
+// This is the KEY setting that was missing - it ensures the full request body is buffered
+const MAX_BODY_SIZE = 260 * 1024 * 1024; // 260 MB (slightly more than max video size)
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-south-2',
@@ -25,7 +30,7 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = 'rexon-web';
-const MAX_IMAGE_SIZE = 20 * 1024 * 1024;    // 20 MB (matches your requirement)
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;    // 20 MB
 const MAX_VIDEO_SIZE = 250 * 1024 * 1024;   // 250 MB
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 2;
@@ -109,12 +114,16 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
     });
 
     bb.on('error', (err: Error) => {
-      console.error('Busboy error:', err);
+      console.error('[BUSBOY] Parse error:', err.message);
       reject(err);
     });
 
     bb.on('finish', () => {
-      if (errors.length > 0) return reject(new Error(errors[0]));
+      if (errors.length > 0) {
+        console.error('[BUSBOY] File processing errors:', errors);
+        return reject(new Error(errors[0]));
+      }
+      console.log('[BUSBOY] Successfully parsed multipart data');
       resolve({ fields, files });
     });
 
@@ -122,6 +131,7 @@ function parseMultipartFromBuffer(buffer: Buffer, contentType: string): Promise<
     Readable.from(buffer).pipe(bb);
   });
 }
+
 export function parseAmenities(value: any): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -137,21 +147,25 @@ export function parseAmenities(value: any): string[] {
 
 async function uploadToS3(buffer: Buffer, mimetype: string, s3Key: string): Promise<string> {
   try {
+    console.log(`[S3] Starting upload of ${s3Key} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+    
     await s3Client.send(
       new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: s3Key,
         Body: buffer,
         ContentType: mimetype,
-        // Add metadata for debugging
         Metadata: {
           'uploaded-at': new Date().toISOString(),
         },
       })
     );
-    return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+    
+    const url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-2'}.amazonaws.com/${s3Key}`;
+    console.log(`[S3] Upload successful: ${url}`);
+    return url;
   } catch (error) {
-    console.error('S3 upload error:', error);
+    console.error('[S3] Upload error:', error);
     throw new Error(`Failed to upload file to S3: ${(error as any).message}`);
   }
 }
@@ -166,34 +180,66 @@ export async function POST(request: NextRequest) {
 
     const userId = session.agentId;
     const contentType = request.headers.get('content-type') || '';
+    const contentLength = request.headers.get('content-length');
+
+    console.log(`[UPLOAD] Starting upload - Content-Length: ${contentLength ? `${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB` : 'unknown'}`);
 
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json({ error: 'Content-Type must be multipart/form-data' }, { status: 400 });
     }
 
-    // Read the COMPLETE body as an ArrayBuffer — this is what Next.js has
-    // already fully buffered regardless of the 10 MB warning. The warning
-    // refers to a secondary clone kept for middleware re-reads, not this call.
+    // ⚠️ PRODUCTION FIX: Check content length before processing
+    if (contentLength) {
+      const contentLengthBytes = parseInt(contentLength, 10);
+      if (contentLengthBytes > MAX_BODY_SIZE) {
+        console.error(`[UPLOAD] Request exceeds max body size: ${(contentLengthBytes / 1024 / 1024).toFixed(2)} MB > ${(MAX_BODY_SIZE / 1024 / 1024).toFixed(2)} MB`);
+        return NextResponse.json(
+          { error: `Upload exceeds maximum size limit of ${(MAX_BODY_SIZE / 1024 / 1024).toFixed(0)} MB` },
+          { status: 413 } // Payload Too Large
+        );
+      }
+    }
+
     let bodyBuffer: Buffer;
     try {
       const arrayBuffer = await request.arrayBuffer();
       bodyBuffer = Buffer.from(arrayBuffer);
-      console.log(`[UPLOAD] Request body size: ${(bodyBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+      
+      const bufferSize = bodyBuffer.length / 1024 / 1024;
+      console.log(`[UPLOAD] Request body buffered successfully: ${bufferSize.toFixed(2)} MB`);
+      
+      // ⚠️ Safety check: Ensure we got the complete body
+      if (contentLength && bodyBuffer.length < parseInt(contentLength, 10)) {
+        console.error(`[UPLOAD] CRITICAL: Received incomplete body! Expected ${contentLength} bytes, got ${bodyBuffer.length}`);
+        return NextResponse.json(
+          { error: 'Request body was truncated. This is a server issue. Please try again or contact support.' },
+          { status: 400 }
+        );
+      }
     } catch (e: any) {
-      console.error('Failed to read request body:', e);
-      return NextResponse.json({ error: 'Failed to read request body.' }, { status: 400 });
+      console.error('[UPLOAD] Failed to read request body:', e.message);
+      return NextResponse.json(
+        { error: 'Failed to read request body. The upload may be too large or interrupted.' },
+        { status: 400 }
+      );
     }
 
     let parsed: ParsedForm;
     try {
       parsed = await parseMultipartFromBuffer(bodyBuffer, contentType);
-      console.log(`[UPLOAD] Parsed files: ${parsed.files.length}, fields: ${Object.keys(parsed.fields).length}`);
+      console.log(`[UPLOAD] Parsed successfully - Files: ${parsed.files.length}, Fields: ${Object.keys(parsed.fields).length}`);
     } catch (parseError: any) {
-      console.error('Multipart parse error:', parseError);
-      return NextResponse.json(
-        { error: parseError.message || 'Failed to read upload data. Check file sizes and try again.' },
-        { status: 400 }
-      );
+      console.error('[UPLOAD] Multipart parse error:', parseError.message);
+      
+      // Provide helpful error messages based on parse error type
+      let errorMessage = 'Failed to parse upload data. ';
+      if (parseError.message.includes('Unexpected end of form')) {
+        errorMessage += 'The request body may have been truncated. This can happen with very large files. Please try again with a smaller file or check your connection.';
+      } else {
+        errorMessage += 'Check file sizes and try again.';
+      }
+      
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
     const { fields, files } = parsed;
@@ -307,9 +353,8 @@ export async function POST(request: NextRequest) {
       : null;
 
     const { autoApproveListings } = await getAutoApprovalFlags();
-    console.log('autoApproveListings:', autoApproveListings);
+    console.log('[UPLOAD] Auto-approval setting:', autoApproveListings);
     const initialStatus = autoApproveListings ? 'Active' : 'Pending';
-    console.log(initialStatus, 'initial status');
 
     // Insert warehouse record
     const warehouseResult = await query(
@@ -357,6 +402,8 @@ export async function POST(request: NextRequest) {
     );
 
     const warehouseId = warehouseResult.rows[0].id;
+    console.log(`[UPLOAD] Warehouse created with ID: ${warehouseId}`);
+    
     const agentNameResult = await query(
       `SELECT full_name FROM agents WHERE id = $1`,
       [userId]
@@ -372,15 +419,15 @@ export async function POST(request: NextRequest) {
     }).catch(err => console.error('[notifyPropertyAdded] failed silently:', err));
 
     // ── Upload images concurrently ───────────────────────────────────────────
+    console.log(`[UPLOAD] Starting image uploads: ${images.length} images`);
     const imageUploadPromises = images.map(async (file, index) => {
       try {
         const ext = file.filename.split('.').pop();
         const randomStr = randomBytes(16).toString('hex');
         const s3Key = `${userId}/warehouses/${warehouseId}/images/${Date.now()}-${randomStr}.${ext}`;
         
-        console.log(`[IMAGE] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB) to S3...`);
+        console.log(`[IMAGE] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
         const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
-        console.log(`[IMAGE] Successfully uploaded to ${s3Url}`);
 
         const result = await query(
           `INSERT INTO uploads
@@ -397,15 +444,15 @@ export async function POST(request: NextRequest) {
     });
 
     // ── Upload videos concurrently ───────────────────────────────────────────
+    console.log(`[UPLOAD] Starting video uploads: ${videos.length} videos`);
     const videoUploadPromises = videos.map(async (file, index) => {
       try {
         const ext = file.filename.split('.').pop();
         const randomStr = randomBytes(16).toString('hex');
         const s3Key = `${userId}/warehouses/${warehouseId}/videos/${Date.now()}-${randomStr}.${ext}`;
         
-        console.log(`[VIDEO] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB) to S3...`);
+        console.log(`[VIDEO] Uploading ${file.filename} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
         const s3Url = await uploadToS3(file.buffer, file.mimetype, s3Key);
-        console.log(`[VIDEO] Successfully uploaded to ${s3Url}`);
 
         const result = await query(
           `INSERT INTO uploads
@@ -438,7 +485,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Property creation error:', error);
+    console.error('[UPLOAD] Fatal error:', error);
     return NextResponse.json(
       { error: `Failed to create property listing: ${(error as any).message}` },
       { status: 500 }

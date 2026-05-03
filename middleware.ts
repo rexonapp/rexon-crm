@@ -66,12 +66,20 @@ export function middleware(request: NextRequest) {
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
+
   if ((request.method === 'POST' || request.method === 'PATCH') && 
       (request.nextUrl.pathname.startsWith('/api/upload') || 
        request.nextUrl.pathname.startsWith('/api/properties'))) {
     
-    console.log(`[MIDDLEWARE] ${request.method} ${request.nextUrl.pathname}`);
-    console.log(`[MIDDLEWARE] Content-Length: ${request.headers.get('content-length')} bytes`);
+    const contentLength = request.headers.get('content-length');
+    const contentType = request.headers.get('content-type');
+    
+    if (contentLength) {
+      const sizeInMB = (parseInt(contentLength, 10) / 1024 / 1024).toFixed(2);
+      console.log(`[MIDDLEWARE] ${request.method} ${request.nextUrl.pathname}`);
+      console.log(`[MIDDLEWARE] Content-Length: ${sizeInMB} MB`);
+      console.log(`[MIDDLEWARE] Content-Type: ${contentType}`);
+    }
   }
 
   return NextResponse.next();
@@ -80,4 +88,3 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/api/:path*'],
 };
- 
