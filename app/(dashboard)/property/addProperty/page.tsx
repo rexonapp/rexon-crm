@@ -414,86 +414,100 @@ export default function WarehouseUploadForm() {
   const handleSubmit = async () => {
     if (!validateForm()) {
       toast.error('Please fill in all required fields correctly');
-      const firstErrorField = document.querySelector('.border-red-500');
-      if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      document.querySelector('.border-red-500')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-
+  
     setUploading(true);
     setUploadProgress(0);
-
+  
     try {
-      const uploadFormData = new FormData();
-
-      // Object.entries(formData).forEach(([key, value]) => {
-      //   if (key === 'images') {
-      //     formData.images.forEach(file => uploadFormData.append('images', file));
-      //   } else if (key === 'videos') {
-      //     formData.videos.forEach(file => uploadFormData.append('videos', file));
-      //   } else if (key === 'amenities') {
-      //     uploadFormData.append('amenities', JSON.stringify(value));
-      //   } else {
-      //     uploadFormData.append(key, value.toString());
-      //   }
-      // });
-
-
-      uploadFormData.append('title', formData.title);
-      uploadFormData.append('description', formData.description);
-      uploadFormData.append('propertyType', formData.propertyType);
-      uploadFormData.append('totalArea', formData.totalArea);
-      uploadFormData.append('sizeUnit', formData.sizeUnit);
-      uploadFormData.append('availableFrom', formData.availableFrom);
-      uploadFormData.append('listingType', formData.listingType);
-      uploadFormData.append('pricePerSqFt', formData.pricePerSqFt);
-      uploadFormData.append('totalPrice', formData.totalPrice);
-      uploadFormData.append('address', formData.address);
-      uploadFormData.append('city', formData.city);
-
-      uploadFormData.append('state', formData.state.name);
-      uploadFormData.append('state_code', formData.state.code);
-
-      uploadFormData.append('pincode', formData.pincode);
-      uploadFormData.append('roadConnectivity', formData.roadConnectivity);
-      uploadFormData.append('latitude', formData.latitude);
-      uploadFormData.append('longitude', formData.longitude);
-      uploadFormData.append('contactPersonName', formData.contactPersonName);
-      uploadFormData.append('contactPersonPhone', formData.contactPersonPhone);
-      uploadFormData.append('contactPersonAlternatePhone', formData.contactPersonAlternatePhone);
-      uploadFormData.append('isPriceNegotiable', formData.isPriceNegotiable.toString());
-      uploadFormData.append('contactPersonEmail', formData.contactPersonEmail);
-      uploadFormData.append('contactPersonDesignation', formData.contactPersonDesignation);
-
-      uploadFormData.append('amenities', JSON.stringify(formData.amenities));
-
-      formData.images.forEach(file => uploadFormData.append('images', file));
-      formData.videos.forEach(file => uploadFormData.append('videos', file));
-
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => prev >= 90 ? prev : prev + 10);
-      }, 300);
-
-      const response = await fetch('/api/upload', {
+      // Step 1: Get presigned URLs from Vercel (tiny JSON request — no file bytes)
+      const filesMeta = [
+        ...formData.images.map(f => ({ filename: f.name, mimetype: f.type, fieldname: 'images' })),
+        ...formData.videos.map(f => ({ filename: f.name, mimetype: f.type, fieldname: 'videos' })),
+      ];
+  
+      const presignRes = await fetch('/api/upload/presign', {
         method: 'POST',
-        body: uploadFormData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: filesMeta }),
       });
-
-      clearInterval(progressInterval);
+      if (!presignRes.ok) {
+        const err = await presignRes.json();
+        throw new Error(err.error || 'Failed to get upload URLs');
+      }
+      const { presignedUrls } = await presignRes.json();
+      setUploadProgress(10);
+  
+      // Step 2: Upload each file DIRECTLY to S3 (bypasses Vercel entirely)
+      const allFiles = [...formData.images, ...formData.videos];
+      const uploadedFiles: any[] = [];
+  
+      for (let i = 0; i < presignedUrls.length; i++) {
+        const { presignedUrl, s3Key, s3Url, fieldname, filename, mimetype } = presignedUrls[i];
+        const file = allFiles[i];
+  
+        const uploadRes = await fetch(presignedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+  
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error(`Failed to upload ${file.name}: ${uploadRes.status} ${errText}`);
+        }  
+        uploadedFiles.push({ s3Key, s3Url, fieldname, filename, mimetype, size: file.size });
+  
+        // Progress: 10% to 85% during uploads
+        setUploadProgress(10 + Math.round(((i + 1) / presignedUrls.length) * 75));
+      }
+  
+      setUploadProgress(90);
+  
+      // Step 3: Send metadata + s3Keys to Vercel (tiny JSON — no file bytes)
+      const metaRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          propertyType: formData.propertyType,
+          totalArea: formData.totalArea,
+          sizeUnit: formData.sizeUnit,
+          availableFrom: formData.availableFrom,
+          listingType: formData.listingType,
+          pricePerSqFt: formData.pricePerSqFt,
+          totalPrice: formData.totalPrice,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state.name,
+          state_code: formData.state.code,
+          pincode: formData.pincode,
+          roadConnectivity: formData.roadConnectivity,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          contactPersonName: formData.contactPersonName,
+          contactPersonPhone: formData.contactPersonPhone,
+          contactPersonAlternatePhone: formData.contactPersonAlternatePhone,
+          isPriceNegotiable: formData.isPriceNegotiable,
+          contactPersonEmail: formData.contactPersonEmail,
+          contactPersonDesignation: formData.contactPersonDesignation,
+          amenities: formData.amenities,
+          uploadedFiles,
+        }),
+      });
+  
       setUploadProgress(100);
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Upload failed');
-
+      const data = await metaRes.json();
+      if (!metaRes.ok) throw new Error(data.error || 'Failed to save listing');
+  
       toast.success('Property listed successfully!', {
         description: 'Your property has been submitted for review.',
       });
-
-      setTimeout(() => {
-        window.location.href = '/property';
-      }, 2000);
-
+      setTimeout(() => { window.location.href = '/property'; }, 2000);
+  
     } catch (error) {
       toast.error('Upload failed', {
         description: error instanceof Error ? error.message : 'Please try again.',
