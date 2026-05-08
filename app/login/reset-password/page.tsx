@@ -368,9 +368,15 @@ export default function AgentResetPasswordPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-[420px]">
-        <div className="mb-10 flex justify-center">
+        {/* <div className="mb-10 flex justify-center">
           <RexonLogo />
-        </div>
+        </div> */}
+         {/* Logo */}
+         <div className="flex justify-center mb-8">
+         <Link href="/">
+            <img src="/rexon-logo.png" alt="Rexon" className="h-20 w-auto object-contain" />
+          </Link>      
+            </div>
         <Suspense
           fallback={
             <div className="flex items-center justify-center py-16 gap-2.5 text-muted-foreground text-[14px]">

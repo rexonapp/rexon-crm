@@ -99,8 +99,14 @@ export default function AgentLoginPage() {
       {/* Container */}
       <div className="w-full max-w-[420px]">
         {/* Logo */}
-        <div className="mb-1 flex justify-center">
+        {/* <div className="mb-1 flex justify-center">
           <RexonLogo />
+        </div> */}
+
+        <div className="flex justify-center mb-8">
+          <Link href="/">
+            <img src="/rexon-logo.png" alt="Rexon" className="h-20 w-auto object-contain" />
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-border/70 bg-background/90 shadow-sm p-6 md:p-7 backdrop-blur">

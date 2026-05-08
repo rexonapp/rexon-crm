@@ -71,10 +71,15 @@ export default function AgentForgotPasswordPage() {
       <div className="w-full max-w-[420px]">
 
         {/* Logo */}
-        <div className="mb-10 flex justify-center">
+        {/* <div className="mb-10 flex justify-center">
           <RexonLogo />
-        </div>
+        </div> */}
 
+        <div className="flex justify-center mb-8">
+          <Link href="/">
+            <img src="/rexon-logo.png" alt="Rexon" className="h-20 w-auto object-contain" />
+          </Link>
+        </div>
         {submitted ? (
           /* ── Success state ── */
           <div className="text-center">
