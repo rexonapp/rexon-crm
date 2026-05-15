@@ -308,11 +308,11 @@ export default function MyListingsPage() {
       <div className="w-full mx-auto space-y-6"> 
 
         {/* ── Breadcrumb ── */}
-        <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+        {/* <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
           <span>/</span>
           <span className="text-foreground font-medium">My Properties</span>
-        </div>
+        </div> */}
 
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -647,7 +647,7 @@ export default function MyListingsPage() {
                         <TableHead
                           key={label}
                           className={cn(
-                            'text-l font-bold tracking-[0.07em] text-muted-foreground/60 h-11 px-4',
+                            'text-l font-bold text-cyan-600 tracking-[0.07em] h-11 px-4',
                             cls
                           )}
                         >
