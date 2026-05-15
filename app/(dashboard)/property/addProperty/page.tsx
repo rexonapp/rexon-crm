@@ -1367,7 +1367,7 @@ export default function WarehouseUploadForm() {
                 <Button
                   onClick={handleSubmit}
                   disabled={uploading}
-                  className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white py-6 text-base font-bold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+                  className="w-full bg-[#0f8a94] hover:bg-[#0f8a94] text-white py-6 text-base font-bold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
                 >
                   {uploading ? (
                     <>
@@ -1386,7 +1386,7 @@ export default function WarehouseUploadForm() {
                   variant="outline"
                   onClick={() => router.back()}
                   disabled={uploading}
-                  className="w-full py-6 text-base font-medium border-2 border-brand-border-secondary hover:bg-brand-secondary/10 hover:text-brand-blue-deep"
+                  className="w-full py-6 bg-[#da7948] hover:bg-[#da7948] text-white"
                 >
                   Cancel
                 </Button>
