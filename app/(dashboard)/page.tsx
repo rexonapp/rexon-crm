@@ -291,7 +291,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Main content area ─────────────────────────────────────────────── */}
-      <section className="flex-1 py-6">
+      {/* <section className="flex-1 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="lg:col-span-2 p-5 border border-brand-secondary/20 bg-card min-h-[160px] flex items-center justify-center shadow-sm">
             <p className="text-[13px] text-muted-foreground/50">Recent Listings will appear here</p>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             <p className="text-[13px] text-muted-foreground/50">Lead Activity</p>
           </Card>
         </div>
-      </section>
+      </section> */}
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="mt-auto border-t border-brand-secondary/25 pt-5 pb-4">

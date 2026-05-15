@@ -301,9 +301,11 @@ export default function MyListingsPage() {
     </div>
   );
 
-  return (
-    <div className="min-h-screen bg-background py-8 px-6 lg:px-8  sm:py-10 lg:py-10 xl:py-10 py-2">
-      <div className="max-w-7xl mx-auto space-y-6">
+  return ( 
+    // <div className="flex-1 min-h-0  overflow-hidden bg-background py-8 px-3 sm:py-4 lg:px-6 xl:px-8 w-full">
+    <div className="w-full bg-background py-8 px-6 lg:px-8  sm:py-10 lg:py-10 xl:py-10 py-2">
+
+      <div className="w-full mx-auto space-y-6"> 
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
