@@ -206,9 +206,11 @@ export async function POST(request: NextRequest) {
     // --- Type normalisation (same as before) ---
     const priceType = listingType === 'rent' ? 'Rent' : listingType === 'sale' ? 'Sale' : 'Lease';
     const propertyTypeMap: Record<string, string> = {
-      warehouse: 'Warehouse', cold_storage: 'Cold Storage',
-      industrial_shed: 'Industrial Shed', manufacturing_unit: 'Manufacturing Unit',
-      godown: 'Godown', factory_space: 'Factory Space',
+      warehouse: 'Warehouse', 
+      // cold_storage: 'Cold Storage',
+      // industrial_shed: 'Industrial Shed', manufacturing_unit: 'Manufacturing Unit',
+      // godown: 'Godown', 
+      factory_space: 'Factory Space',
       logistics_hub: 'Logistics Hub', distribution_center: 'Distribution Center',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;

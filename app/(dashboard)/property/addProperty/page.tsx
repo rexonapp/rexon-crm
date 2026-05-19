@@ -73,10 +73,10 @@ interface FieldErrors {
 }
 const PROPERTY_TYPES = [
   { label: 'Warehouse', value: 'warehouse' },
-  { label: 'Cold Storage', value: 'cold_storage' },
-  { label: 'Industrial Shed', value: 'industrial_shed' },
-  { label: 'Manufacturing Unit', value: 'manufacturing_unit' },
-  { label: 'Godown', value: 'godown' },
+  // { label: 'Cold Storage', value: 'cold_storage' },
+  // { label: 'Industrial Shed', value: 'industrial_shed' },/
+  // { label: 'Manufacturing Unit', value: 'manufacturing_unit' },
+  // { label: 'Godown', value: 'godown' },
   { label: 'Factory Space', value: 'factory_space' },
   { label: 'Logistics Hub', value: 'logistics_hub' },
   { label: 'Distribution Center', value: 'distribution_center' },

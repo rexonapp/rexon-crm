@@ -85,8 +85,11 @@ interface FieldErrors {
 }
 
 const PROPERTY_TYPES = [
-  'Warehouse', 'Cold Storage', 'Industrial Shed', 'Manufacturing Unit',
-  'Godown', 'Factory Space', 'Logistics Hub', 'Distribution Center'
+  'Warehouse',
+  //  'Cold Storage', 'Industrial Shed', 
+  //  'Manufacturing Unit',
+  // 'Godown', 
+  'Factory Space', 'Logistics Hub', 'Distribution Center'
 ];
 const AMENITIES = ['Parking', 'Security', 'CCTV'];
 // const INDIAN_STATES = [
@@ -142,10 +145,10 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
 const PROPERTY_TYPE_REVERSE: Record<string, string> = {
   'Warehouse':            'Warehouse',
-  'Cold Storage':         'Cold Storage',
-  'Industrial Shed':      'Industrial Shed',
-  'Manufacturing Unit':   'Manufacturing Unit',
-  'Godown':               'Godown',
+  // 'Cold Storage':         'Cold Storage',
+  // 'Industrial Shed':      'Industrial Shed',
+  // 'Manufacturing Unit':   'Manufacturing Unit',
+  // 'Godown':               'Godown',
   'Factory Space':        'Factory Space',
   'Logistics Hub':        'Logistics Hub',
   'Distribution Center':  'Distribution Center',
