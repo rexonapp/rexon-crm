@@ -2,9 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { query } from '@/lib/db';
-import sgMail from '@sendgrid/mail';
+// import sgMail from '@sendgrid/mail';
+// sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+import { BrevoClient } from '@getbrevo/brevo';
+const brevo = new BrevoClient({
+  apiKey: process.env.BREVO_KEY!,
+});
 
 const secret = new TextEncoder().encode(process.env.AGENT_RESET_TOKEN_SECRET!);
 
@@ -100,21 +104,57 @@ export async function POST(request: NextRequest) {
     const resetUrl = `${baseUrl}/login/reset-password?token=${token}`;
 
     // ── Step 4: Send email ────────────────────────────────────────────────────
-    await sgMail.send({
-      to: agent.email,
-      from: {
-        email: 'admin@rexonproperties.in',
-        name: process.env.SENDGRID_FROM_NAME ?? 'Rexon Agent Portal',
-      },
+    // await sgMail.send({
+    //   to: agent.email,
+    //   from: {
+    //     email: 'admin@rexonproperties.in',
+    //     name: process.env.SENDGRID_FROM_NAME ?? 'Rexon Agent Portal',
+    //   },
+    //   subject: 'Reset your Rexon agent password',
+    //   html: buildEmailHtml({ fullName: agent.full_name, resetUrl }),
+    //   text: buildEmailText({ fullName: agent.full_name, resetUrl }),
+    // });
+    const emailResult =
+    await brevo.transactionalEmails.sendTransacEmail({
       subject: 'Reset your Rexon agent password',
-      html: buildEmailHtml({ fullName: agent.full_name, resetUrl }),
-      text: buildEmailText({ fullName: agent.full_name, resetUrl }),
+  
+      sender: {
+        email: 'admin@rexonproperties.in',
+        name: process.env.BREVO_FROM_NAME ?? 'Rexon Agent Portal',
+      },
+  
+      to: [
+        {
+          email: agent.email,
+          name: agent.full_name,
+        },
+      ],
+  
+      htmlContent: buildEmailHtml({
+        fullName: agent.full_name,
+        resetUrl,
+      }),
+  
+      textContent: buildEmailText({
+        fullName: agent.full_name,
+        resetUrl,
+      }),
+  
+      replyTo: {
+        email: 'support@rexonproperties.in',
+        name: 'Rexon Support',
+      },
+  
+      headers: {
+        'X-Entity-Ref-ID': `rexon-agent-password-reset-${agent.id}-${Date.now()}`,
+      },
     });
 
     console.log('[Agent Password Reset Email Sent]', {
       agentId: agent.id,
       email: agent.email,
       resetDomain: baseUrl,
+      messageId: emailResult.messageId,
       timestamp: new Date().toISOString(),
     });
 
