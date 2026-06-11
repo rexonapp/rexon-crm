@@ -77,9 +77,11 @@ const PROPERTY_TYPES = [
   // { label: 'Industrial Shed', value: 'industrial_shed' },/
   // { label: 'Manufacturing Unit', value: 'manufacturing_unit' },
   // { label: 'Godown', value: 'godown' },
-  { label: 'Factory Space', value: 'factory_space' },
-  { label: 'Logistics Hub', value: 'logistics_hub' },
-  { label: 'Distribution Center', value: 'distribution_center' },
+  // { label: 'Factory Space', value: 'factory_space' },
+  // { label: 'Logistics Hub', value: 'logistics_hub' },
+  // { label: 'Distribution Center', value: 'distribution_center' },
+  { label: 'Farm Land', value: 'Farm Land' },
+  { label: 'Commercial Space', value: 'Commercial Space' },
 ];
 
 const AMENITIES = [

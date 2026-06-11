@@ -299,8 +299,10 @@ export async function PATCH(
       // 'Cold Storage': 'Cold Storage',
       // 'Industrial Shed': 'Industrial Shed', 'Manufacturing Unit': 'Manufacturing Unit',
       // 'Godown': 'Godown',
-       'Factory Space': 'Factory Space',
-      'Logistics Hub': 'Logistics Hub', 'Distribution Center': 'Distribution Center',
+      //  'Factory Space': 'Factory Space',
+      // 'Logistics Hub': 'Logistics Hub', 'Distribution Center': 'Distribution Center',
+      'Farm Land' : 'Farm Land',
+      'Commercial Space' : 'Commercial Space',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
 

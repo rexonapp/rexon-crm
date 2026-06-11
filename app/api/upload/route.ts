@@ -210,8 +210,10 @@ export async function POST(request: NextRequest) {
       // cold_storage: 'Cold Storage',
       // industrial_shed: 'Industrial Shed', manufacturing_unit: 'Manufacturing Unit',
       // godown: 'Godown', 
-      factory_space: 'Factory Space',
-      logistics_hub: 'Logistics Hub', distribution_center: 'Distribution Center',
+      // factory_space: 'Factory Space',
+      // logistics_hub: 'Logistics Hub', distribution_center: 'Distribution Center',
+      farm_land : 'Farm Land',
+      commercial_space : 'Commercial Space',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
     const roadConnectivityMap: Record<string, string> = {
