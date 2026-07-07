@@ -302,7 +302,7 @@ export async function PATCH(
       //  'Factory Space': 'Factory Space',
       // 'Logistics Hub': 'Logistics Hub', 'Distribution Center': 'Distribution Center',
       'Farm Land' : 'Farm Land',
-      'Commercial Space' : 'Commercial Space',
+      // 'Commercial Space' : 'Commercial Space',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
 

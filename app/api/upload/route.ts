@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
       // factory_space: 'Factory Space',
       // logistics_hub: 'Logistics Hub', distribution_center: 'Distribution Center',
       farm_land : 'Farm Land',
-      commercial_space : 'Commercial Space',
+      // commercial_space : 'Commercial Space',
     };
     const normalizedPropertyType = propertyTypeMap[propertyType] || propertyType;
     const roadConnectivityMap: Record<string, string> = {

@@ -81,7 +81,7 @@ const PROPERTY_TYPES = [
   // { label: 'Logistics Hub', value: 'logistics_hub' },
   // { label: 'Distribution Center', value: 'distribution_center' },
   { label: 'Farm Land', value: 'Farm Land' },
-  { label: 'Commercial Space', value: 'Commercial Space' },
+  // { label: 'Commercial Space', value: 'Commercial Space' },
 ];
 
 const AMENITIES = [

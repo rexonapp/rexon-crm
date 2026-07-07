@@ -90,7 +90,8 @@ const PROPERTY_TYPES = [
   //  'Manufacturing Unit',
   // 'Godown', 
   // 'Factory Space', 'Logistics Hub', 'Distribution Center'
-  'Farm Land',  'Commercial Space'
+  'Farm Land' 
+  // 'Commercial Space'
 ];
 const AMENITIES = ['Parking', 'Security', 'CCTV'];
 // const INDIAN_STATES = [
@@ -154,7 +155,7 @@ const PROPERTY_TYPE_REVERSE: Record<string, string> = {
   // 'Logistics Hub':        'Logistics Hub',
   // 'Distribution Center':  'Distribution Center',
   'Farm Land' : 'Farm Land',
-  'Commercial Space' : 'Commercial Space',
+  // 'Commercial Space' : 'Commercial Space',
 };
 const PRICE_TYPE_REVERSE: Record<string, 'sale' | 'rent' | 'lease'> = {
   'Rent': 'rent', 'Sale': 'sale', 'Lease': 'lease',
